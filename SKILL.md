@@ -3,7 +3,7 @@ name: social-comic-generator
 description: Turn a topic, proposition, lesson, draft, or ready-made story into a complete social-comic production package:传播角度、剧情、角色圣经、动态分页分格、native or deterministically lettered 3:4 comic pages、visual consistency、Eval/Diagnosis、and publish-ready titles/copy/tags. Use for 条漫、连续漫画、心理学/育儿/婚姻/人际/AI知识漫画, one-off posts, or recurring IP series. Preserve user-supplied stories, let the image model arrange panels freely by default when native lettering is used, determine page/panel counts from content rather than fixed templates, and never substitute naked illustrations for finished comic pages.
 ---
 
-# Social Comic Generator
+# 玄清小红书条漫
 
 Turn one idea into a complete, executable comic-content package. Preserve the original creative premise: give the image model a strong story, character lock, aesthetic direction, and required copy, then let it direct the page composition unless stricter control is justified.
 
