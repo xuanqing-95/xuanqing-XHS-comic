@@ -1,7 +1,5 @@
 # Social Comic Generator
 
-![Six-style overview](docs/overview/six-style-contact-sheet.png)
-
 把主题、观点或现成故事转成完整的 3:4 社交条漫生产包：传播角度、剧情、角色圣经、动态分页分格、完整漫画页、视觉验收、问题归因和发布文案。支持六种内置风格、自定义风格、系列角色锚点、原生文字和确定性后排版。
 
 版本：`v0.3.2` · 运行时：Node.js 20+ · 许可证：AGPL-3.0-only
