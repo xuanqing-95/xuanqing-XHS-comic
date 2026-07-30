@@ -1,0 +1,22 @@
+{
+  "name": "social-comic-generator",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "preflight": "node scripts/runtime-preflight.mjs",
+    "verify:skill": "python3 scripts/quick-validate-wrapper.py",
+    "verify:standalone": "node scripts/verify-standalone.mjs",
+    "verify:contracts": "node scripts/test-adapter-contracts.mjs && node scripts/test-reference-assets.mjs && node scripts/test-delivery-manifest.mjs && node scripts/test-usage-contract.mjs",
+    "verify:routes": "node scripts/test-image-route-capabilities.mjs && node scripts/test-codex-builtin-preparation.mjs && node scripts/test-codex-builtin-ingestion.mjs && node scripts/test-codex-builtin-failure-recording.mjs",
+    "verify:runners": "node scripts/test-runner.mjs && node scripts/test-post-layout.mjs && node scripts/test-post-layout-runner.mjs",
+    "verify:relay": "node scripts/test-relay-provider.mjs",
+    "verify": "npm run preflight && npm run verify:skill && npm run verify:standalone && npm run verify:contracts && npm run verify:routes && npm run verify:runners && npm run verify:relay"
+  },
+  "dependencies": {
+    "sharp": "0.35.3"
+  }
+}

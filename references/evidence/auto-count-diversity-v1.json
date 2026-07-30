@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "evidenceId": "auto-count-diversity-v1",
+  "executedAt": "2026-07-22T01:18:29.179Z",
+  "scope": "planning-compile-validation-only",
+  "controls": {
+    "mode": "topic-to-comic",
+    "countMode": "auto",
+    "totalPanelCount": null,
+    "preferredPanelsPerPage": null,
+    "pageCountCeiling": null,
+    "commonStylePreset": "warm-japanese-educational-manga",
+    "plannerProviderCalls": 0,
+    "imageProviderCalls": 0,
+    "evaluatorCalls": 0
+  },
+  "cases": [
+    {
+      "topic": "一句话没说出口的轻微误会",
+      "domain": "人际沟通",
+      "totalPanelCount": 4,
+      "panelsPerPage": [4]
+    },
+    {
+      "topic": "孩子写作业越催越慢",
+      "domain": "育儿心理学",
+      "totalPanelCount": 7,
+      "panelsPerPage": [4, 3]
+    },
+    {
+      "topic": "为什么AI会忘记长对话",
+      "domain": "AI知识科普",
+      "totalPanelCount": 6,
+      "panelsPerPage": [3, 3]
+    },
+    {
+      "topic": "新经理如何给第一次负反馈",
+      "domain": "职场管理",
+      "totalPanelCount": 8,
+      "panelsPerPage": [4, 4]
+    },
+    {
+      "topic": "亲密关系中反复冷战如何修复",
+      "domain": "亲密关系沟通",
+      "totalPanelCount": 9,
+      "panelsPerPage": [3, 3, 3]
+    }
+  ],
+  "validation": {
+    "uniqueTotalPanelCounts": [4, 6, 7, 8, 9],
+    "plannerPackages": "pass",
+    "promptCompilation": "pass",
+    "runValidation": "pass",
+    "errors": 0,
+    "warnings": 0
+  },
+  "conclusion": "Different fixed topics produced different content-derived panel totals with no count hint. This does not prove that an image provider will render every planned panel correctly."
+}

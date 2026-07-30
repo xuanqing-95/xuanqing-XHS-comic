@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "recordedAt": "2026-07-22",
+  "route": "codex-builtin",
+  "caseId": "case-04-codex-every-page-aspect",
+  "plan": {
+    "topic": "为什么一句‘我都可以’，反而让同事更难合作",
+    "countMode": "auto",
+    "totalPanelCount": 7,
+    "pages": [
+      { "pageId": "page-01", "panelCount": 4 },
+      { "pageId": "page-02", "panelCount": 3 }
+    ],
+    "stylePreset": "black-white-screentone-manga",
+    "generationStrategy": "anchor-first-fanout",
+    "textStrategy": "native",
+    "aspectRatio": "3:4"
+  },
+  "preparedAttachments": {
+    "page-01": ["aspect-only-blank-3x4"],
+    "page-02": ["generated-page-01-anchor", "aspect-only-blank-3x4"]
+  },
+  "outcome": {
+    "pageOne": {
+      "invoked": true,
+      "providerOutputReturned": false,
+      "boundedObservationSeconds": 1500,
+      "failureCode": "HOST_TIMEOUT_NO_OUTPUT",
+      "automaticRetry": false
+    },
+    "pageTwo": {
+      "invoked": false,
+      "reason": "Page 1 anchor dependency was not accepted."
+    },
+    "visualEvalRun": false,
+    "postProcessing": []
+  },
+  "diagnosis": {
+    "faultDomain": "runtime",
+    "promptChanged": false,
+    "evalChanged": false,
+    "multiPageEveryPageBlankVisuallyVerified": false
+  },
+  "localRunEvidence": "output/social-comic-tests/preset-auto-matrix-v2/case-04-codex-every-page-aspect",
+  "conclusion": "The corrected attachment plan was prepared and the runtime timeout/stop policy worked, but no image was returned; therefore native 3:4, text, style and cross-page continuity could not be evaluated in this case."
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "社交条漫生成器"
+  short_description: "从主题或故事到可选风格、动态格数、完整3:4条漫和自动验收"
+  default_prompt: "Use $social-comic-generator to turn this topic or story into a complete publishable 3:4 comic package with content-driven or user-fixed panel counts, selectable real style presets or custom/reference-led styles, consistent characters, Eval/Diagnosis, and social copy."

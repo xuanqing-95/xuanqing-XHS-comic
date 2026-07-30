@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "presets": [
+    {
+      "id": "minimalist-doodle-personification",
+      "nameZh": "极简手绘拟人条漫",
+      "description": "极简手绘涂鸦风、日常物品拟人和轻巧冷幽默，适合生活观察、心理隐喻与知识小故事。",
+      "lock": {
+        "medium": "minimal hand-drawn doodle comic with flat digital color",
+        "line": "slightly wobbly, uneven black pen outlines with a casual human-drawn rhythm",
+        "palette": ["paper white", "pale butter yellow", "soft peach skin", "muted cocoa brown", "tiny coral accents"],
+        "lighting": "nearly flat ambient light with no rendered highlights or dramatic shadows",
+        "background": "large areas of clean white space with one loose pale-yellow grounding shape and only essential props",
+        "pageGrammar": "simple imperfect rectangular panel borders, generous margins, clear top-to-bottom reading order, loose hand-drawn speech bubbles",
+        "characterDesign": "anthropomorphize ordinary objects using dot eyes, a tiny mouth, thin rubber-hose arms and legs, and one instantly readable emotion; preserve the object's original silhouette",
+        "typography": "casual legible handwritten Simplified Chinese with short dialogue and roomy bubbles",
+        "avoid": ["realistic rendering", "3D volume", "complex perspective", "dense scenery", "glossy gradients", "cinematic lighting", "over-detailed anatomy"]
+      }
+    },
+    {
+      "id": "warm-japanese-educational-manga",
+      "nameZh": "日系治愈知识条漫",
+      "description": "温暖日常、轻水彩和清晰叙事，适合育儿、关系与情绪科普。",
+      "lock": {
+        "medium": "warm Japanese educational manga with light watercolor texture",
+        "line": "clean dark-brown ink with gentle organic variation",
+        "palette": ["cream", "sage green", "soft mustard", "dusty rose", "warm brown"],
+        "lighting": "soft natural daylight",
+        "background": "lived-in but simplified domestic or everyday spaces on cream paper",
+        "pageGrammar": "clean borders, rounded bubbles, calm spacing and varied but easy-to-follow panel sizes",
+        "characterDesign": "soft rounded proportions, expressive eyes, restrained chibi exaggeration and stable everyday outfits",
+        "typography": "clean friendly Simplified Chinese lettering with concise dialogue",
+        "avoid": ["photorealism", "neon lighting", "heavy black shadows", "hyper-detailed backgrounds", "extreme chibi deformation"]
+      }
+    },
+    {
+      "id": "korean-color-webtoon",
+      "nameZh": "韩系彩色网漫",
+      "description": "干净时尚的彩色网漫语言，适合关系、职场和都市情绪故事。",
+      "lock": {
+        "medium": "clean Korean color webtoon illustration",
+        "line": "thin confident dark line with polished facial features",
+        "palette": ["soft ivory", "dusty blue", "muted coral", "charcoal", "warm beige"],
+        "lighting": "soft cinematic interior light with restrained cel shading",
+        "background": "simplified contemporary interiors with selective perspective detail",
+        "pageGrammar": "bordered social-comic panels with airy spacing, emotional close-ups and clear speech bubbles",
+        "characterDesign": "slender contemporary proportions, readable silhouettes, fashionable but repeatable clothing and expressive faces",
+        "typography": "neat modern Simplified Chinese lettering",
+        "avoid": ["watercolor bleed", "rough doodle lines", "vintage print noise", "super-deformed chibi", "photorealistic skin"]
+      }
+    },
+    {
+      "id": "minimal-flat-infographic-comic",
+      "nameZh": "极简扁平知识漫画",
+      "description": "扁平矢量感、强信息层级和少量角色表演，适合 AI、商业与知识解释。",
+      "lock": {
+        "medium": "minimal flat editorial infographic comic",
+        "line": "uniform clean outline with simple geometric shapes",
+        "palette": ["off-white", "navy", "teal", "warm yellow", "coral accent"],
+        "lighting": "flat color with no realistic light simulation",
+        "background": "abstract geometric fields and only explanation-critical icons",
+        "pageGrammar": "modular panels, strong hierarchy, generous negative space and highly legible bubbles or captions",
+        "characterDesign": "simplified geometric people or mascots with consistent proportions and iconic gestures",
+        "typography": "clear sans-serif-like Simplified Chinese lettering",
+        "avoid": ["painterly texture", "realistic anatomy", "busy scenery", "decorative text effects", "subtle low-contrast colors"]
+      }
+    },
+    {
+      "id": "black-white-screentone-manga",
+      "nameZh": "黑白网点漫画",
+      "description": "黑白墨线、网点灰阶和更强戏剧反应，适合职场、人际冲突与反转。",
+      "lock": {
+        "medium": "black-and-white manga with screentone shading",
+        "line": "crisp expressive black ink with controlled line-weight contrast",
+        "palette": ["paper white", "solid black", "light gray screentone", "dark gray screentone"],
+        "lighting": "graphic black-and-white value design",
+        "background": "selective perspective backgrounds, speed lines and symbolic screentone fields",
+        "pageGrammar": "bold panel rhythm, strong close-ups, manga bubbles and unmistakable reading order",
+        "characterDesign": "stable manga facial construction, readable silhouettes and controlled exaggerated reactions",
+        "typography": "bold legible Simplified Chinese manga lettering",
+        "avoid": ["full color", "soft watercolor", "3D rendering", "muddy gray values", "photorealism"]
+      }
+    },
+    {
+      "id": "retro-two-color-risograph",
+      "nameZh": "复古双色孔版条漫",
+      "description": "双色套印、纸张颗粒和轻微错版感，适合幽默、社交观察和青年文化主题。",
+      "lock": {
+        "medium": "retro two-color risograph comic print",
+        "line": "chunky hand-inked contours with visible print texture",
+        "palette": ["warm uncoated paper", "deep navy ink", "fluorescent red-orange ink"],
+        "lighting": "flat graphic value separation",
+        "background": "simple printed shapes, halftone grain and restrained off-register overlap",
+        "pageGrammar": "playful irregular panels, poster-like emphasis, bold bubbles and clear reading flow",
+        "characterDesign": "graphic simplified figures with stable silhouettes and expressive poses",
+        "typography": "bold hand-lettered Simplified Chinese integrated with the print texture",
+        "avoid": ["smooth gradients", "glossy digital rendering", "many colors", "photorealism", "fine luxury detailing"]
+      }
+    }
+  ]
+}

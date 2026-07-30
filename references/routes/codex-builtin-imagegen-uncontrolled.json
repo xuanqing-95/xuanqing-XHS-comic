@@ -1,0 +1,59 @@
+{
+  "capability": "image",
+  "model": "gpt-image-2",
+  "provider": "codex-host",
+  "adapter": "builtin-imagegen",
+  "pricingModel": "unavailable",
+  "dimensionControl": {
+    "status": "unsupported",
+    "mechanism": "none",
+    "guarantee": "none",
+    "operations": [],
+    "evidence": {
+      "level": "runtime-verified",
+      "source": "The built-in host tool exposes no size or aspect-ratio execution parameter; unattended capability preflight must remain unsupported."
+    },
+    "reason": "The host tool does not expose an aspect-ratio or pixel-size execution parameter."
+  },
+  "interactiveAspectStrategy": {
+    "status": "runtime-verified",
+    "scope": "interactive-aspect-only",
+    "mechanism": "reference-aspect-workaround",
+    "preparationEntrypoint": "scripts/prepare-codex-builtin.mjs",
+    "reference": {
+      "kind": "deterministic-blank-canvas",
+      "width": 1080,
+      "height": 1440,
+      "aspectRatio": "3:4",
+      "role": "canvas-aspect-only"
+    },
+    "evidence": {
+      "level": "runtime-verified",
+      "source": "references/evidence/codex-builtin-aspect-probe-v1.json",
+      "controlOutput": "1024x1536",
+      "treatmentOutput": "1086x1448",
+      "generatedAnchorWithoutBlankOutput": "1024x1536",
+      "providerDirect": true,
+      "postProcessing": [],
+      "approximateWallTimeSeconds": 677
+    },
+    "limitations": [
+      "The host still exposes no executable size or aspect-ratio parameter.",
+      "The evidence supports aspect intent only, not exact pixel dimensions.",
+      "Every provider result must be measured and rejected if it is not native 3:4 within canonical tolerance.",
+      "A usable noncompliant result must not be retried automatically or corrected by crop, resize, pad, stretch, or stitch.",
+      "The workaround may materially increase latency.",
+      "A generated 3:4 Page 1 is not a reliable substitute for the blank aspect reference; attach the blank reference to every page.",
+      "The workaround did not correct native Chinese title punctuation."
+    ]
+  },
+  "multiPageEveryPageBlankVerification": {
+    "status": "runtime-blocked",
+    "evidence": {
+      "level": "runtime-verified-failure",
+      "source": "references/evidence/codex-builtin-case04-timeout-v1.json"
+    },
+    "reason": "The first fresh two-page attempt returned no Page 1 image within a bounded 1500-second observation window, so Page 2 was correctly not invoked and the corrected every-page aspect strategy remains visually unverified end to end."
+  },
+  "supportsReferences": true
+}

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "evidenceId": "codex-builtin-aspect-probe-v1",
+  "recordedAt": "2026-07-22",
+  "adapter": "codex-builtin",
+  "hostTool": "imagegen",
+  "sharedContractVersion": 3,
+  "providerUsage": "unavailable",
+  "postProcessing": [],
+  "observations": [
+    {
+      "case": "page-one-without-canvas-reference",
+      "outputSha256": "1e17ecbe0f0f1925973133580cde1cfe1cf372c19f9a83ca0ea92feaa7281ee9",
+      "width": 1024,
+      "height": 1536,
+      "nativeAspect": "2:3",
+      "result": "fail"
+    },
+    {
+      "case": "same-page-one-contract-with-blank-1080x1440-aspect-reference",
+      "outputSha256": "84ef77dcd7e0a6cce918226ce9ffd5979e245348f56bffb9da4548707a2bd02a",
+      "width": 1086,
+      "height": 1448,
+      "nativeAspect": "3:4",
+      "approximateWallTimeSeconds": 677,
+      "result": "pass"
+    },
+    {
+      "case": "custom-style-page-one-with-blank-aspect-reference",
+      "outputSha256": "6a2503de18b15250f6c7b299274669793641b3ea28e6037e262bad52f4ed8aef",
+      "width": 1086,
+      "height": 1448,
+      "nativeAspect": "3:4",
+      "result": "pass"
+    },
+    {
+      "case": "page-two-with-generated-3x4-page-one-anchor-but-no-blank-reference",
+      "outputSha256": "6b32e0646f46aa0234ae36211be684d9a6aa163dd0393e0fa1ea611ebe07e4e2",
+      "width": 1024,
+      "height": 1536,
+      "nativeAspect": "2:3",
+      "result": "fail"
+    }
+  ],
+  "conclusion": "The dedicated blank 3:4 aspect reference must be attached to every interactive built-in page. A generated native 3:4 Page 1 used only as an identity/style/page-grammar anchor does not reliably preserve the canvas aspect for later pages. Every returned page still requires direct measurement, and this evidence does not establish exact pixel control or native Chinese text accuracy.",
+  "localEvidencePattern": "output/social-comic-tests/** is intentionally gitignored; hashes above let a local acceptance run be matched without committing generated images."
+}

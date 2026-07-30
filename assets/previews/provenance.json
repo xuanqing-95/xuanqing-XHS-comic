@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-07-30",
+  "licenseScope": "Project-produced preview examples; included under AGPL-3.0-only to the extent copyrightable. No external Creative Commons claim.",
+  "conversion": {
+    "command": "cwebp -q 78 -resize 540 0",
+    "note": "The checked-in WebP bytes are the canonical display assets. Source PNG logical paths are provenance references and are not included in this repository."
+  },
+  "evidenceBoundary": "Only item 1 is a reviewed canonical preset run. Item 2 is a reviewed older custom/background run and is only the nearest display example. Items 3-6 are reviewed custom matrix examples judged visually faithful, not canonical preset-run acceptance evidence.",
+  "items": [
+    {
+      "index": 1,
+      "presetId": "minimalist-doodle-personification",
+      "file": "assets/previews/social-comic-style-01.webp",
+      "sha256": "c6ecf02a0a78e592157069b48c2f6267c4831b6bd71526c2e1dc0d4944fc6a13",
+      "width": 540,
+      "height": 722,
+      "sourceLogicalPath": "output/social-comic-tests/minimalist-doodle-personification-v1/images/01.png",
+      "sourceDimensions": { "width": 1085, "height": 1449 },
+      "reviewStatus": "reviewed",
+      "evalStatus": "pass",
+      "evidenceTier": "canonical-preset-reviewed"
+    },
+    {
+      "index": 2,
+      "presetId": "warm-japanese-educational-manga",
+      "file": "assets/previews/social-comic-style-02.webp",
+      "sha256": "865c202b317fda309a871c0080eca06c588b1fa24bd6f3b15c7ac3d7f61f0a5e",
+      "width": 540,
+      "height": 720,
+      "sourceLogicalPath": "why-rushing-makes-child-slower-comic-v3/images/01.png",
+      "sourceDimensions": { "width": 1086, "height": 1448 },
+      "reviewStatus": "reviewed",
+      "evalStatus": "pass",
+      "evidenceTier": "nearest-reviewed-custom-example"
+    },
+    {
+      "index": 3,
+      "presetId": "korean-color-webtoon",
+      "file": "assets/previews/social-comic-style-03.webp",
+      "sha256": "09902ad4cd86200a38e8c2c4d17de0dcefbd04a88917d9813fc1ff9630839b2e",
+      "width": 540,
+      "height": 720,
+      "sourceLogicalPath": "panel-style-theme-matrix-v1/case-04-korean-marriage/images/01.png",
+      "reviewStatus": "reviewed",
+      "evalStatus": "pass",
+      "evidenceTier": "visually-faithful-reviewed-custom-example"
+    },
+    {
+      "index": 4,
+      "presetId": "minimal-flat-infographic-comic",
+      "file": "assets/previews/social-comic-style-04.webp",
+      "sha256": "dbfb970439a184a06eb3c948aa35980e394cd330388ade76e2b499cd4c0fac46",
+      "width": 540,
+      "height": 720,
+      "sourceLogicalPath": "panel-style-theme-matrix-v1/case-05-flat-ai/images/01.png",
+      "reviewStatus": "reviewed",
+      "evalStatus": "pass",
+      "evidenceTier": "visually-faithful-reviewed-custom-example"
+    },
+    {
+      "index": 5,
+      "presetId": "black-white-screentone-manga",
+      "file": "assets/previews/social-comic-style-05.webp",
+      "sha256": "f66ea32726b6c84f5d5c8e6bde6b02fafb8612606b6ef186985b9de6c5a9a090",
+      "width": 540,
+      "height": 720,
+      "sourceLogicalPath": "panel-style-theme-matrix-v1/case-07-bw-workplace/images/01.png",
+      "reviewStatus": "reviewed",
+      "evalStatus": "pass",
+      "evidenceTier": "visually-faithful-reviewed-custom-example"
+    },
+    {
+      "index": 6,
+      "presetId": "retro-two-color-risograph",
+      "file": "assets/previews/social-comic-style-06.webp",
+      "sha256": "75ae14e9f7f0c91f510db5a03522616f35ce413b3465795f69dd9e730e05b9d7",
+      "width": 540,
+      "height": 720,
+      "sourceLogicalPath": "panel-style-theme-matrix-v1/case-08-risograph-chat/images/01.png",
+      "reviewStatus": "reviewed",
+      "evalStatus": "pass",
+      "evidenceTier": "visually-faithful-reviewed-custom-example"
+    }
+  ]
+}

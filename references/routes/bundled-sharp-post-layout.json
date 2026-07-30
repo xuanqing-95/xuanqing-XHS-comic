@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "capability": "post-layout",
+  "engine": "sharp-svg-v1",
+  "fontFamily": "Noto Sans CJK SC",
+  "fontFile": "../../assets/fonts/NotoSansCJKsc-Regular.otf",
+  "fontSha256": "2c76254f6fc379fddfce0a7e84fb5385bb135d3e399294f6eeb6680d0365b74b",
+  "fontWeight": 500,
+  "minFontPx": 18,
+  "maxFontPx": 56,
+  "lineHeightRatio": 1.25,
+  "paddingRatio": 0.1,
+  "textColor": "#111111",
+  "bubbleFill": "#fffdf8",
+  "bubbleStroke": "#171717",
+  "bubbleStrokeWidth": 3,
+  "evidence": {
+    "level": "bundled",
+    "fontLicense": "SIL Open Font License 1.1",
+    "fontLicenseFile": "../../assets/fonts/OFL-1.1.txt",
+    "fontSource": "https://github.com/notofonts/noto-cjk/blob/Sans2.004/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf"
+  }
+}

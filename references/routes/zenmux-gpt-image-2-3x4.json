@@ -1,0 +1,39 @@
+{
+  "capability": "image",
+  "baseURL": "https://zenmux.ai/api/v1",
+  "apiKeyEnv": [
+    "ZENMUX_OPENAI_API_KEY"
+  ],
+  "model": "openai/gpt-image-2",
+  "provider": "zenmux",
+  "adapter": "openai-compatible",
+  "pricingModel": "zenmux:openai/gpt-image-2",
+  "dimensionControl": {
+    "status": "supported",
+    "mechanism": "size",
+    "guarantee": "exact",
+    "operations": [
+      "generation",
+      "edit"
+    ],
+    "evidence": {
+      "level": "documented",
+      "source": "https://zenmux.ai/docs/api/openai/generate-an-image ; https://zenmux.ai/docs/api/openai/create-image-edit.html ; https://developers.openai.com/api/docs/guides/image-generation"
+    }
+  },
+  "aspectRatioSizes": {
+    "3:4": "1152x1536"
+  },
+  "supportedSizes": [
+    "1152x1536"
+  ],
+  "exactOutputSizes": [
+    "1152x1536"
+  ],
+  "qualityMap": {
+    "draft": "low",
+    "standard": "medium",
+    "final": "high"
+  },
+  "supportsReferences": true
+}

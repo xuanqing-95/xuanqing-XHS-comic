@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "id": "social-comic-generator",
+  "version": "0.3.0",
+  "artifactVersion": 3,
+  "source": {
+    "policy": "github-release-pinned",
+    "repository": "https://github.com/xuanqing-95/social-comic-generator",
+    "canonicalPath": ".",
+    "releaseTag": "v0.3.0",
+    "hashPolicy": "sha256-relative-path-size-content-v1"
+  },
+  "license": "AGPL-3.0-only",
+  "runtime": {
+    "node": ">=20",
+    "packageManager": "npm",
+    "dependencyManifest": "package-lock.json",
+    "preflight": "scripts/runtime-preflight.mjs"
+  },
+  "entrypoints": {
+    "platform": "scripts/run.mjs",
+    "codex": "SKILL.md"
+  },
+  "adapters": {
+    "platform-api": {
+      "invocation": "route-json",
+      "billing": "platform-metered",
+      "automation": "unattended",
+      "capabilityCatalog": "references/routes/zenmux-gpt-image-2-3x4.json",
+      "artifactContractVersion": 3,
+      "promptCompiler": "scripts/compile-prompts.mjs"
+    },
+    "codex-builtin": {
+      "invocation": "agent-tool:imagegen",
+      "billing": "host-account-usage",
+      "automation": "interactive",
+      "capabilityCatalog": "references/routes/codex-builtin-imagegen-uncontrolled.json",
+      "adapterContract": "references/adapters/codex-builtin.md",
+      "artifactContractVersion": 3,
+      "promptCompiler": "scripts/compile-prompts.mjs",
+      "preparationEntrypoint": "scripts/prepare-codex-builtin.mjs",
+      "preparationArtifact": "codex-builtin-invocations.json",
+      "resultIngestionEntrypoint": "scripts/ingest-codex-builtin-result.mjs",
+      "failureRecordingEntrypoint": "scripts/record-codex-builtin-failure.mjs",
+      "derivedPromptDirectory": "codex-prompts",
+      "deliveryScope": "local-interactive",
+      "dimensionPolicy": "aspect-reference-and-verify-without-crop-resize-pad-stretch-or-stitch"
+    }
+  },
+  "publicConfig": {
+    "styleCatalog": "references/style-presets.json",
+    "defaultStylePreset": "minimalist-doodle-personification",
+    "modes": ["topic-to-comic", "story-to-comic", "series-continuation"],
+    "countModes": ["auto", "user-fixed"],
+    "styleModes": ["preset", "custom"],
+    "textStrategies": ["native", "post-layout"],
+    "qualities": ["draft", "standard", "final"],
+    "aspectRatio": "3:4"
+  }
+}
