@@ -18,10 +18,10 @@ const platform = manifest.adapters?.["platform-api"];
 const codex = manifest.adapters?.["codex-builtin"];
 
 assert.equal(manifest.source.policy, "github-release-pinned");
-assert.equal(manifest.source.repository, "https://github.com/xuanqing-95/social-comic-generator");
+assert.equal(manifest.source.repository, "https://github.com/xuanqing-95/xuanqing-XHS-comic");
 assert.equal(manifest.source.canonicalPath, ".");
-assert.equal(manifest.source.releaseTag, "v0.3.1");
-assert.equal(manifest.version, "0.3.1");
+assert.equal(manifest.source.releaseTag, "v0.3.2");
+assert.equal(manifest.version, "0.3.2");
 assert.equal(manifest.license, "AGPL-3.0-only");
 assert.equal(manifest.runtime.node, ">=20");
 assert.equal(manifest.runtime.dependencyManifest, "package-lock.json");

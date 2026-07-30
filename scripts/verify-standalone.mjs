@@ -35,11 +35,11 @@ const [pkg, manifest, provenance] = await Promise.all([
   readJson("skill-manifest.json"),
   readJson("assets/previews/provenance.json"),
 ]);
-assert.equal(pkg.version, "0.3.1");
+assert.equal(pkg.version, "0.3.2");
 assert.equal(manifest.version, pkg.version);
 assert.equal(manifest.source.policy, "github-release-pinned");
 assert.equal(manifest.source.canonicalPath, ".");
-assert.equal(manifest.source.releaseTag, "v0.3.1");
+assert.equal(manifest.source.releaseTag, "v0.3.2");
 assert.equal(manifest.license, "AGPL-3.0-only");
 assert.equal(provenance.items.length, 6);
 

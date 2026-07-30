@@ -9,11 +9,11 @@ import { buildDeliveryManifest } from "./delivery-manifest.mjs";
 
 const sourceIdentity = {
   policy: "github-release-pinned",
-  repository: "https://github.com/xuanqing-95/social-comic-generator",
+  repository: "https://github.com/xuanqing-95/xuanqing-XHS-comic",
   canonicalPath: ".",
   commit: "a".repeat(40),
-  releaseTag: "v0.3.1",
-  version: "0.3.1",
+  releaseTag: "v0.3.2",
+  version: "0.3.2",
   artifactVersion: 3,
   sourceSha256: "b".repeat(64),
   publicConfigSha256: "c".repeat(64),
