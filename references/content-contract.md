@@ -78,6 +78,7 @@ For `generated`, require exactly three genuinely different angles. For `skipped`
 Use `sourceMode: user-supplied` for preserved stories. Record meaningful changes in `sourceFaithfulness`.
 For topic-led generated stories, the runtime compiles `sourceFaithfulness` from the validated topic and core message. Do not use that deterministic provenance field as a substitute for evaluating whether the generated story actually stayed faithful.
 The runtime also supplies a platform- and `ctaGoal`-aligned CTA only when the planner omits `copywriting.cta`. This fallback repairs structure, not story meaning; all title, summary, quote, and tag quality gates remain unchanged.
+For native lettering, panel dialogue and narration are the source of truth for the page text manifest. The runtime unions them into `requiredText`; extra page-level titles/captions remain planner-authored.
 
 ## 4. `character-bible.json`
 

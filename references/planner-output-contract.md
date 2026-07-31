@@ -54,6 +54,7 @@ The planner must not return `prompts`, `images`, `eval`, `evalReport`, `diagnosi
 - Set `story.sourceMode` to `generated`.
 - Treat `story.sourceFaithfulness` as input provenance, not a creative field. The runtime compiles it deterministically from the validated topic and core message so a complete otherwise-valid plan cannot fail because the model omitted this metadata.
 - Treat artifact versions, output ratio/quality/text strategy, page and panel counts, canonical file paths, visual-lock output fields, copywriting platform, and a missing CTA fallback as runtime-owned structure. The planner may author a better CTA, but omission must not invalidate an otherwise complete plan.
+- In native-text mode, the runtime merges every panel dialogue and narration string into that page's `requiredText` array while preserving additional page-level title/caption strings. Do not make the planner maintain two independently fallible copies of the same text.
 
 ### `story-to-comic`
 

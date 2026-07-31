@@ -106,6 +106,22 @@ function normalizeInputDeterminedPlanFields(comicPlan, input) {
   for (const page of comicPlan.pages) {
     if (!page || typeof page !== "object" || Array.isArray(page) || !Array.isArray(page.panels)) continue;
     page.panelCount = page.panels.length;
+    if (input?.output?.textStrategy === "native") {
+      const requiredText = Array.isArray(page.requiredText)
+        ? page.requiredText.filter(nonEmptyString).map((text) => text.trim())
+        : [];
+      for (const panel of page.panels) {
+        if (!panel || typeof panel !== "object" || Array.isArray(panel)) continue;
+        for (const text of Array.isArray(panel.dialogue) ? panel.dialogue : []) {
+          if (nonEmptyString(text)) requiredText.push(text.trim());
+        }
+        if (nonEmptyString(panel.narration)) requiredText.push(panel.narration.trim());
+        else if (Array.isArray(panel.narration)) {
+          for (const text of panel.narration) if (nonEmptyString(text)) requiredText.push(text.trim());
+        }
+      }
+      page.requiredText = [...new Set(requiredText)];
+    }
   }
 }
 
@@ -157,6 +173,9 @@ function plannerContractFacts(input, styleCatalog) {
       generatedStorySourceFaithfulness(input),
     copywritingPlatform: input?.platform,
     copywritingCtaFallback: generatedCopywritingCta(input),
+    nativeRequiredText: input?.output?.textStrategy === "native"
+      ? "runtime merges every panel dialogue and narration string into each page requiredText array"
+      : "planner-authored requiredText and matching textPlacements",
     seriesMode: input?.mode === "series-continuation" || input?.series?.enabled === true,
     presetStyle: preset ? { presetId: preset.id, ...structuredClone(preset.lock) } : null,
   };
@@ -269,7 +288,7 @@ export function buildPlannerPrompt(input, styleCatalog) {
     `- generationStrategy is reference-parallel, anchor-first-fanout, local-identity-lock, or style-lock-parallel. Choose based on actual identity/reference needs.\n` +
     `- Each page requires id, purpose, change, scene, panelCount, panels, requiredText, promptFile, outputFile. Page 1 must use promptFile "prompts/01.md" and outputFile "images/01.png"; page 2 must use "prompts/02.md" and "images/02.png"; continue with the same zero-padded index. Do not translate, rename, or add prefixes to these paths.\n` +
     `- Each panel requires id, change, action, emotion, dialogue array, and direction. If any panel has a non-empty direction, compositionFreedom must be "director-locked" and every panel needs a direction. For "model-arranged", every panel direction must be null.\n` +
-    `- requiredText contains only exact title/dialogue/narration that must render; it is not a whitelist of harmless environmental marks.\n` +
+    `- requiredText contains only exact title/dialogue/narration that must render; it is not a whitelist of harmless environmental marks. In native text mode, the runtime merges every panel dialogue and narration string into requiredText before validation, while preserving any additional page-level title/caption strings.\n` +
     `- Omit exactSize everywhere unless input.output.exactSize exists. If it exists, copy it unchanged to comicPlan.exactSize and visualLock.output.exactSize.\n\n` +
     `VISUAL LOCK RULES\n` +
     `- visualLock requires lockId, sourceCharacterBible character-bible.json, style, characters, output, referenceImages.\n` +

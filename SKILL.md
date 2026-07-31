@@ -110,6 +110,7 @@ Require conflict, progression, and a memorable ending, but vary the structure. D
 
 For topic-led generation, treat `sourceFaithfulness` as deterministic input provenance compiled from the validated topic and core message. For a user-supplied story, keep it planner-authored so it truthfully explains any clarity or pacing edits. Never use deterministic provenance to bypass semantic validation of the story, emotional curve, or传播 angles.
 Runtime-owned planning structure is canonicalized before validation: artifact versions, output settings, derived page/panel counts, canonical paths, visual output locks, platform, and a missing CTA fallback. Do not weaken semantic validators or invent missing story decisions.
+For native lettering, the runtime also derives each page's required text manifest from its panel dialogue and narration, preserving any additional page-level title/caption strings.
 
 ### 4. Build the character and series bible
 

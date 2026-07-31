@@ -216,6 +216,21 @@ const topicPackage = {
     platform: "错误平台",
   },
   visualLock: malformedDeterministicFields.visualLock,
+  comicPlan: {
+    version: 2,
+    aspectRatio: "错误比例",
+    quality: "错误质量",
+    textStrategy: "错误文字策略",
+    pageCount: 99,
+    pages: [{
+      panelCount: 99,
+      requiredText: ["页面标题"],
+      panels: [{
+        dialogue: ["小满，明天能替我值班吗？"],
+        narration: "她犹豫了一下，打字：好。",
+      }],
+    }],
+  },
 };
 const normalizedTopic = normalizePlannerPackage(topicPackage, topicInput, styleCatalog);
 assert.equal(normalizedTopic.story.sourceMode, "generated");
@@ -234,6 +249,17 @@ assert.equal(
   normalizedTopic.copywriting.cta,
   "如果这篇条漫对你有启发，欢迎收藏，并在评论区聊聊你的看法。",
 );
+assert.equal(normalizedTopic.comicPlan.version, 3);
+assert.equal(normalizedTopic.comicPlan.aspectRatio, "3:4");
+assert.equal(normalizedTopic.comicPlan.quality, "standard");
+assert.equal(normalizedTopic.comicPlan.textStrategy, "native");
+assert.equal(normalizedTopic.comicPlan.pageCount, 1);
+assert.equal(normalizedTopic.comicPlan.pages[0].panelCount, 1);
+assert.deepEqual(normalizedTopic.comicPlan.pages[0].requiredText, [
+  "页面标题",
+  "小满，明天能替我值班吗？",
+  "她犹豫了一下，打字：好。",
+]);
 assert.ok(
   !validatePlannerPackage(normalizedTopic, topicInput, styleCatalog).includes(
     "story.sourceFaithfulness must be a non-empty string",
@@ -249,6 +275,10 @@ assert.match(
 assert.match(
   topicPrompt,
   /"copywritingCtaFallback": "如果这篇条漫对你有启发，欢迎收藏，并在评论区聊聊你的看法。"/,
+);
+assert.match(
+  topicPrompt,
+  /runtime merges every panel dialogue and narration string into each page requiredText array/,
 );
 
 const customInput = structuredClone(storyInput);
@@ -277,6 +307,7 @@ console.log(JSON.stringify({
     "topic-led story source faithfulness",
     "artifact versions",
     "copywriting platform and missing CTA fallback",
+    "native requiredText from panel dialogue and narration",
     "character seriesMode",
     "numeric age serialization",
     "character list-shaped fields",
