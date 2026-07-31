@@ -45,6 +45,7 @@ export function validateRunReview({
   visualLock,
   characterBible,
   usage,
+  codexBuiltinPlanAccepted,
   debug,
   errors,
   warnings,
@@ -242,7 +243,12 @@ export function validateRunReview({
       }
       const succeeded = usage.calls.filter((call) => call.status === "succeeded");
       const hasRole = (role) => succeeded.some((call) => call.role === role);
-      if (plan && ["planned", "generated-unlettered", "generated", "reviewed", "needs-review"].includes(result?.status) && !hasRole("planner")) {
+      if (
+        plan
+        && ["planned", "generated-unlettered", "generated", "reviewed", "needs-review"].includes(result?.status)
+        && !hasRole("planner")
+        && codexBuiltinPlanAccepted !== true
+      ) {
         errors.push("planned or later results require one succeeded planner usage receipt");
       }
       if (plan && ["generated-unlettered", "generated", "reviewed", "needs-review"].includes(result?.status)) {

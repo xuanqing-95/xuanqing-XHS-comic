@@ -110,6 +110,14 @@ try {
   assert.equal(acceptedPlan.invocations[0].providerDirect, true);
   assert.deepEqual(acceptedPlan.invocations[0].dimensions, { width: 1086, height: 1448 });
   assert.equal(acceptedPlan.invocations[0].sha256, acceptedHash);
+  const acceptedUsage = JSON.parse(await readFile(path.join(acceptedRun, "usage.json"), "utf8"));
+  assert.equal(acceptedUsage.status, "unavailable");
+  assert.equal(acceptedUsage.calls.length, 1);
+  assert.equal(acceptedUsage.calls[0].callId, "codex-builtin:image:page-01");
+  assert.equal(acceptedUsage.calls[0].role, "image");
+  assert.equal(acceptedUsage.calls[0].status, "succeeded");
+  assert.equal(acceptedUsage.calls[0].meteringStatus, "unavailable");
+  assert.equal(acceptedUsage.calls[0].outputHash, acceptedHash);
   assert.deepEqual(await readFile(path.join(acceptedRun, "result.json")), resultBefore);
   assert.deepEqual(await readFile(path.join(acceptedRun, "eval-report.json")), evalBefore);
   cases.push("native-3x4-copies-identical-bytes-and-records-acceptance-only");
@@ -134,6 +142,8 @@ try {
   });
   assert.equal(replay.replayed, true);
   assert.equal(replay.providerCalls, 0);
+  const replayUsage = JSON.parse(await readFile(path.join(acceptedRun, "usage.json"), "utf8"));
+  assert.equal(replayUsage.calls.length, 1);
   await writeFile(path.join(acceptedRun, "images/01.png"), tinyPng(1086, 1448, 9));
   await assert.rejects(
     () => ingestCodexBuiltinResult({ runDir: acceptedRun, pageId: "page-01", providerOutput: acceptedProvider }),

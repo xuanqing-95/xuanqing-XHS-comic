@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -479,6 +480,58 @@ try {
   const validation = await runNode([validator, fullRun], env);
   assert.equal(validation.status, 0, validation.stdout || validation.stderr);
 
+  const codexCrossRun = path.join(tempDir, "codex-cross-adapter-run");
+  await cp(fullRun, codexCrossRun, { recursive: true });
+  const codexPlan = JSON.parse(await readFile(path.join(codexCrossRun, "comic-plan.json"), "utf8"));
+  const codexResult = JSON.parse(await readFile(path.join(codexCrossRun, "result.json"), "utf8"));
+  const dimensionsByFile = new Map(codexResult.actualDimensions.map((item) => [item.file, item]));
+  await writeFile(path.join(codexCrossRun, "codex-builtin-invocations.json"), `${JSON.stringify({
+    version: 3,
+    adapter: "codex-builtin",
+    status: "accepted",
+    providerCalls: 0,
+    invocations: await Promise.all(codexPlan.pages.map(async (page) => {
+      const bytes = await readFile(path.join(codexCrossRun, page.outputFile));
+      const dimensions = dimensionsByFile.get(page.outputFile);
+      return {
+        id: `codex-builtin-${page.id}`,
+        pageId: page.id,
+        expectedProviderOutput: page.outputFile,
+        finalOutputFile: page.outputFile,
+        outputFile: page.outputFile,
+        status: "accepted",
+        providerDirect: true,
+        dimensions: { width: dimensions.width, height: dimensions.height },
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      };
+    })),
+  }, null, 2)}\n`);
+  const codexUsagePath = path.join(codexCrossRun, "usage.json");
+  const codexUsage = JSON.parse(await readFile(codexUsagePath, "utf8"));
+  codexUsage.calls = codexUsage.calls
+    .filter((call) => call.role !== "planner")
+    .map((call) => call.role === "image"
+      ? {
+          ...call,
+          provider: "codex-builtin",
+          model: "built-in-image-model",
+          pricingModel: "codex-builtin:unmetered",
+          meteringStatus: "unavailable",
+          usage: null,
+        }
+      : call);
+  codexUsage.status = "unavailable";
+  await writeFile(codexUsagePath, `${JSON.stringify(codexUsage, null, 2)}\n`);
+  const codexCrossValidation = await runNode([validator, codexCrossRun], env);
+  assert.equal(codexCrossValidation.status, 0, codexCrossValidation.stdout || codexCrossValidation.stderr);
+
+  const missingCodexReceipt = JSON.parse(await readFile(codexUsagePath, "utf8"));
+  missingCodexReceipt.calls = missingCodexReceipt.calls.filter((call) => call.pageId !== codexPlan.pages[0].id);
+  await writeFile(codexUsagePath, `${JSON.stringify(missingCodexReceipt, null, 2)}\n`);
+  const missingCodexReceiptValidation = await runNode([validator, codexCrossRun], env);
+  assert.notEqual(missingCodexReceiptValidation.status, 0, "Codex evidence must not replace per-page image usage receipts");
+  assert.match(missingCodexReceiptValidation.stdout, new RegExp(`image usage receipt for ${codexPlan.pages[0].id}`));
+
   wrongNextImage = true;
   const wrongSizeRun = path.join(tempDir, "wrong-size-run");
   const wrongSize = await runNode([
@@ -524,6 +577,7 @@ try {
       "incomplete-evaluator-contract-is-repaired-on-the-same-images-without-image-regeneration",
       "multimodal-eval-and-diagnosis-produce-reviewed-result",
       "provider-without-metering-remains-usage-unavailable",
+      "codex-builtin-cross-adapter-evaluation-keeps-unmetered-image-receipts",
       "wrong-direct-size-stops-before-later-pages-and-vision-eval",
       "failed-generation-preserves-measured-output-and-deterministic-diagnosis",
     ],

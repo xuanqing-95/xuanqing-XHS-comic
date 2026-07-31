@@ -157,6 +157,7 @@ const topicAngles = readJson("topic-angles.json", planningRequired);
 const story = readJson("story.json", planningRequired);
 const characterBible = readJson("character-bible.json", planningRequired);
 const copywriting = readJson("copywriting.json", planningRequired);
+const codexBuiltinInvocations = readJson("codex-builtin-invocations.json", false);
 const letteringPlan = readJson("lettering-plan.json", plan?.textStrategy === "post-layout");
 const letteringReportRequired = plan?.textStrategy === "post-layout" && ["generated", "reviewed", "needs-review"].includes(result?.status);
 const letteringReport = readJson("lettering-report.json", letteringReportRequired);
@@ -170,6 +171,7 @@ for (const [name, value] of Object.entries({
   plan,
   visualLock,
   copywriting,
+  codexBuiltinInvocations,
   letteringPlan,
   letteringReport,
   result,
@@ -507,6 +509,52 @@ if (input && visualLock && characterBible) {
   errors.push(...validateReferenceAssets({ input, visualLock, characterBible }));
 }
 
+let codexBuiltinPlanAccepted = false;
+if (codexBuiltinInvocations) {
+  const codexErrorsBefore = errors.length;
+  if (codexBuiltinInvocations.adapter !== "codex-builtin") {
+    errors.push("codex-builtin-invocations.adapter must be codex-builtin");
+  }
+  if (codexBuiltinInvocations.providerCalls !== 0) {
+    errors.push("codex-builtin-invocations.providerCalls must remain 0");
+  }
+  if (codexBuiltinInvocations.status !== "accepted") {
+    errors.push("codex-builtin-invocations.status must be accepted before evaluation");
+  }
+  if (!Array.isArray(codexBuiltinInvocations.invocations)) {
+    errors.push("codex-builtin-invocations.invocations must be an array");
+  } else if (plan) {
+    const plannedPageIds = new Set((plan.pages || []).map((page) => page.id));
+    const invocationPageIds = new Set(codexBuiltinInvocations.invocations.map((item) => item?.pageId));
+    if (plannedPageIds.size !== invocationPageIds.size || [...plannedPageIds].some((pageId) => !invocationPageIds.has(pageId))) {
+      errors.push("accepted Codex invocation pages must exactly match comic-plan pages");
+    }
+    for (const page of plan.pages || []) {
+      const matches = codexBuiltinInvocations.invocations.filter((item) => item?.pageId === page.id);
+      if (matches.length !== 1) {
+        errors.push(`accepted Codex evidence requires exactly one invocation for ${page.id}`);
+        continue;
+      }
+      const invocation = matches[0];
+      if (invocation.status !== "accepted" || invocation.providerDirect !== true) {
+        errors.push(`Codex invocation ${page.id} must be accepted provider-direct evidence`);
+      }
+      if (invocation.expectedProviderOutput !== page.outputFile || invocation.outputFile !== page.outputFile) {
+        errors.push(`Codex invocation ${page.id} output must match comic-plan`);
+      }
+      const metadata = readPng(page.outputFile, `Codex invocation ${page.id}`);
+      if (metadata && (
+        invocation.sha256 !== metadata.sha256
+        || invocation.dimensions?.width !== metadata.width
+        || invocation.dimensions?.height !== metadata.height
+      )) {
+        errors.push(`Codex invocation ${page.id} does not match the accepted image bytes`);
+      }
+    }
+  }
+  codexBuiltinPlanAccepted = errors.length === codexErrorsBefore;
+}
+
 const outputValidation = validateRunOutputs({
   result,
   plan,
@@ -531,6 +579,7 @@ validateRunReview({
   visualLock,
   characterBible,
   usage,
+  codexBuiltinPlanAccepted,
   debug,
   errors,
   warnings,

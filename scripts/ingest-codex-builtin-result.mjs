@@ -7,6 +7,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { writeJsonAtomic } from "./run-artifacts.mjs";
+import { buildUsageArtifact, stableHash, upsertUsageCall } from "./usage-contract.mjs";
 
 const INVOCATION_PLAN_FILE = "codex-builtin-invocations.json";
 const PNG_SIGNATURE = Buffer.from("89504e470d0a1a0a", "hex");
@@ -219,6 +220,46 @@ function planStatus(invocations) {
   return "prepared";
 }
 
+async function readJsonIfExists(filePath) {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8"));
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw codedError("RUN_ARTIFACT_INVALID", `Cannot parse ${path.basename(filePath)}: ${error.message}`);
+  }
+}
+
+async function recordAcceptedImageUsage(rootRealPath, invocation, pageId, metadata) {
+  const usagePath = path.join(rootRealPath, "usage.json");
+  const current = (await readJsonIfExists(usagePath)) || { version: 3, status: "not_applicable", calls: [] };
+  const call = {
+    callId: `codex-builtin:image:${pageId}`,
+    role: "image",
+    stage: "generate",
+    operation: "codex-builtin-image",
+    pageId,
+    outputFile: invocation.expectedProviderOutput,
+    status: "succeeded",
+    meteringStatus: "unavailable",
+    inputHash: stableHash({
+      pageId,
+      prompt: invocation.prompt,
+      attachments: invocation.attachments || [],
+      expectedProviderOutput: invocation.expectedProviderOutput,
+    }),
+    outputHash: metadata.sha256,
+    requestId: null,
+    completedAt: new Date().toISOString(),
+    usage: null,
+    provider: "codex-builtin",
+    model: "built-in-image-model",
+    pricingModel: "codex-builtin:unmetered",
+    attempts: 1,
+  };
+  const calls = upsertUsageCall(current.calls || [], call);
+  await writeJsonAtomic(usagePath, { version: 3, ...buildUsageArtifact(calls) });
+}
+
 export async function ingestCodexBuiltinResult({ runDir, pageId, providerOutput } = {}) {
   const requestedRunDir = path.resolve(nonEmptyString(runDir, "run-dir"));
   const rootInfo = await existingStat(requestedRunDir, "run-dir");
@@ -254,6 +295,7 @@ export async function ingestCodexBuiltinResult({ runDir, pageId, providerOutput 
     if (provider.metadata.sha256 !== invocation.sha256 || !provider.bytes.equals(accepted.bytes)) {
       throw codedError("ALREADY_ACCEPTED_CONFLICT", `Page ${safePageId} was already accepted with different bytes`);
     }
+    await recordAcceptedImageUsage(rootRealPath, invocation, safePageId, provider.metadata);
     return {
       status: "accepted",
       pageId: safePageId,
@@ -310,6 +352,7 @@ export async function ingestCodexBuiltinResult({ runDir, pageId, providerOutput 
   };
   plan.status = planStatus(plan.invocations);
   await writeJsonAtomic(planPath, plan);
+  await recordAcceptedImageUsage(rootRealPath, plan.invocations[index], safePageId, provider.metadata);
   return {
     status: "accepted",
     pageId: safePageId,

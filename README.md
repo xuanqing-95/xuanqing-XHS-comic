@@ -2,7 +2,7 @@
 
 把主题、观点或现成故事转成完整的 3:4 社交条漫生产包：传播角度、剧情、角色圣经、动态分页分格、完整漫画页、视觉验收、问题归因和发布文案。支持六种内置风格、自定义风格、系列角色锚点、原生文字和确定性后排版。
 
-版本：`v0.3.14` · 运行时：Node.js 20+ · 许可证：AGPL-3.0-only
+版本：`v0.3.15` · 运行时：Node.js 20+ · 许可证：AGPL-3.0-only
 
 ## 六种风格
 
@@ -21,7 +21,7 @@
 
 ```text
 请安装并使用这个固定版本的 Skill：
-https://github.com/xuanqing-95/xuanqing-XHS-comic/releases/tag/v0.3.14
+https://github.com/xuanqing-95/xuanqing-XHS-comic/releases/tag/v0.3.15
 
 安装依赖并运行 npm run verify。优先使用 Codex 自带的 ImageGen；
 如果当前环境没有生图工具，再提醒我配置自己的图片 API。
@@ -36,7 +36,7 @@ https://github.com/xuanqing-95/xuanqing-XHS-comic/releases/tag/v0.3.14
 仓库采用扁平 Skill 结构，`SKILL.md` 位于根目录。
 
 ```bash
-git clone --branch v0.3.14 --depth 1 \
+git clone --branch v0.3.15 --depth 1 \
   https://github.com/xuanqing-95/xuanqing-XHS-comic.git \
   "$HOME/.agents/skills/social-comic-generator"
 cd "$HOME/.agents/skills/social-comic-generator"
