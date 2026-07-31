@@ -125,6 +125,13 @@ function normalizeInputDeterminedPlanFields(comicPlan, input) {
   }
 }
 
+function normalizeCrossArtifactPlanFields(comicPlan, story) {
+  if (!comicPlan || typeof comicPlan !== "object" || Array.isArray(comicPlan)) return;
+  if (!story || typeof story !== "object" || Array.isArray(story)) return;
+  if (nonEmptyString(story.title)) comicPlan.title = story.title;
+  if (nonEmptyString(story.coreMessage)) comicPlan.coreMessage = story.coreMessage;
+}
+
 function normalizeInputDeterminedVisualFields(visualLock, characterBible, input) {
   if (!visualLock || typeof visualLock !== "object" || Array.isArray(visualLock)) return;
   visualLock.version = 3;
@@ -240,6 +247,7 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
   }
 
   normalizeCompositionFreedom(normalized.comicPlan);
+  normalizeCrossArtifactPlanFields(normalized.comicPlan, normalized.story);
   normalizeInputDeterminedPlanFields(normalized.comicPlan, input);
   normalizePageFiles(normalized.comicPlan);
   normalizeInputDeterminedVisualFields(normalized.visualLock, normalized.characterBible, input);
@@ -299,6 +307,15 @@ export function buildPlannerPrompt(input, styleCatalog) {
     `- Preserve the user's topic/story, coreMessage, tone, platform, and safety boundaries. Use concise natural Simplified Chinese when language is zh-CN.`;
 }
 
+export function buildPlannerRepairPrompt({ input, styleCatalog, invalidPackage, validationErrors }) {
+  return `${buildPlannerPrompt(input, styleCatalog)}\n\n` +
+    `CONTRACT REPAIR\nThe previous planner response was valid JSON but did not satisfy the executable contract. ` +
+    `Return one complete replacement package after fixing every listed validation error. ` +
+    `Preserve the same creative direction unless a listed error requires a correction. Do not call or authorize image generation.\n` +
+    `Validation errors: ${JSON.stringify(validationErrors)}\n` +
+    `Previous incomplete response: ${JSON.stringify(invalidPackage)}`;
+}
+
 async function writePlannerArtifacts(runDir, pkg) {
   const artifacts = {
     "topic-angles.json": pkg.topicAngles,
@@ -341,8 +358,35 @@ export function createPlanStage(context) {
       throw error;
     }
 
-    const plannerPackage = normalizePlannerPackage(response.data, input, styleCatalog);
-    const plannerErrors = validatePlannerPackage(plannerPackage, input, styleCatalog);
+    let plannerPackage = normalizePlannerPackage(response.data, input, styleCatalog);
+    let plannerErrors = validatePlannerPackage(plannerPackage, input, styleCatalog);
+    if (plannerErrors.length > 0) {
+      const repairPrompt = buildPlannerRepairPrompt({
+        input,
+        styleCatalog,
+        invalidPackage: plannerPackage,
+        validationErrors: plannerErrors,
+      });
+      const repairInputHash = stableHash(repairPrompt);
+      const repairIntent = modelCallIntent({
+        callId: callIdFor(`plan-contract-repair:${repairInputHash}`),
+        role: "planner",
+        stage: "plan",
+        operation: "chat",
+        inputHash: repairInputHash,
+      });
+      await recordUsage(repairIntent);
+      let repairResponse;
+      try {
+        repairResponse = await runJsonChat({ route, prompt: repairPrompt, timeoutMs: args.timeoutMs });
+        await recordUsage(completedModelCall(repairIntent, repairResponse, stableHash(repairResponse.data)));
+      } catch (error) {
+        await recordUsage(failedModelCall(repairIntent, error));
+        throw error;
+      }
+      plannerPackage = normalizePlannerPackage(repairResponse.data, input, styleCatalog);
+      plannerErrors = validatePlannerPackage(plannerPackage, input, styleCatalog);
+    }
     if (plannerErrors.length > 0) throw new Error(`Planner output failed its contract:\n${plannerErrors.join("\n")}`);
     await writePlannerArtifacts(runDir, plannerPackage);
     const letteringPlan = buildLetteringPlan(plannerPackage.comicPlan);

@@ -243,7 +243,9 @@ const counts = { planner: 0, vision: 0, generations: 0, edits: 0 };
 let imageNumber = 0;
 let wrongNextImage = false;
 let malformedNextVision = true;
+let malformedNextPlanner = true;
 const visionPrompts = [];
+const plannerPrompts = [];
 const server = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
@@ -276,6 +278,16 @@ const server = createServer(async (request, response) => {
       jsonResponse(response, { choices: [{ message: { content: JSON.stringify(subjectiveEval) } }] });
     } else {
       counts.planner += 1;
+      plannerPrompts.push(body.messages[1].content);
+      if (malformedNextPlanner) {
+        malformedNextPlanner = false;
+        const incomplete = structuredClone(plannerPackage);
+        incomplete.story.emotionalCurve = [];
+        incomplete.comicPlan.title = "模型写出的另一个漫画标题";
+        incomplete.comicPlan.coreMessage = "模型写出的另一个核心观点";
+        jsonResponse(response, { choices: [{ message: { content: JSON.stringify(incomplete) } }] });
+        return;
+      }
       jsonResponse(response, { choices: [{ message: { content: JSON.stringify(plannerPackage) } }] });
     }
     return;
@@ -379,7 +391,9 @@ try {
     "--authorize-model-calls",
   ], env);
   assert.equal(plannedOnly.status, 0, plannedOnly.stdout || plannedOnly.stderr);
-  assert.deepEqual(counts, { planner: 1, vision: 0, generations: 0, edits: 0 });
+  assert.deepEqual(counts, { planner: 2, vision: 0, generations: 0, edits: 0 });
+  assert.match(plannerPrompts[1], /CONTRACT REPAIR/);
+  assert.match(plannerPrompts[1], /story\.emotionalCurve must be a non-empty string array/);
   const plannedOnlyResult = JSON.parse(await readFile(path.join(capabilityBlockedRun, "result.json"), "utf8"));
   assert.equal(plannedOnlyResult.status, "planned");
   assert.equal(plannedOnlyResult.error, null, "successful planning must clear the fail-closed initialization error");
@@ -393,7 +407,7 @@ try {
     "--resume",
   ], env);
   assert.notEqual(capabilityBlocked.status, 0);
-  assert.deepEqual(counts, { planner: 1, vision: 0, generations: 0, edits: 0 });
+  assert.deepEqual(counts, { planner: 2, vision: 0, generations: 0, edits: 0 });
   const capabilityBlockedResult = JSON.parse(await readFile(path.join(capabilityBlockedRun, "result.json"), "utf8"));
   assert.equal(capabilityBlockedResult.status, "failed");
   assert.equal(capabilityBlockedResult.stage, "generate");
@@ -417,7 +431,7 @@ try {
     "--max-concurrency", "2",
   ], env);
   assert.equal(completed.status, 0, completed.stdout || completed.stderr);
-  assert.deepEqual(counts, { planner: 2, vision: 2, generations: 0, edits: 2 });
+  assert.deepEqual(counts, { planner: 3, vision: 2, generations: 0, edits: 2 });
   assert.match(visionPrompts[0], /OUTPUT TEMPLATE/);
   assert.match(visionPrompts[1], /CONTRACT REPAIR/);
   const result = JSON.parse(await readFile(path.join(fullRun, "result.json"), "utf8"));
@@ -466,7 +480,7 @@ try {
     "--authorize-model-calls",
   ], env);
   assert.notEqual(wrongSize.status, 0, "wrong direct dimensions must stop the run");
-  assert.deepEqual(counts, { planner: 3, vision: 2, generations: 0, edits: 3 });
+  assert.deepEqual(counts, { planner: 4, vision: 2, generations: 0, edits: 3 });
   const wrongResult = JSON.parse(await readFile(path.join(wrongSizeRun, "result.json"), "utf8"));
   assert.equal(wrongResult.status, "failed");
   assert.equal(wrongResult.stage, "generate");
@@ -488,6 +502,7 @@ try {
     cases: [
       "no-authority-means-zero-provider-requests",
       "unsupported-host-dimension-route-fails-before-image-provider-call",
+      "incomplete-planner-contract-is-repaired-before-image-generation",
       "planner-package-to-deterministic-page-prompts",
       "reference-metadata-order-matches-two-reference-edits-and-sidecars",
       "anchor-first-page-is-appended-after-external-references",

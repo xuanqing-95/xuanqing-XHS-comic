@@ -218,6 +218,8 @@ const topicPackage = {
   visualLock: malformedDeterministicFields.visualLock,
   comicPlan: {
     version: 2,
+    title: "模型写出的另一个漫画标题",
+    coreMessage: "模型写出的另一个核心观点",
     aspectRatio: "错误比例",
     quality: "错误质量",
     textStrategy: "错误文字策略",
@@ -254,6 +256,8 @@ assert.equal(normalizedTopic.comicPlan.aspectRatio, "3:4");
 assert.equal(normalizedTopic.comicPlan.quality, "standard");
 assert.equal(normalizedTopic.comicPlan.textStrategy, "native");
 assert.equal(normalizedTopic.comicPlan.pageCount, 1);
+assert.equal(normalizedTopic.comicPlan.title, normalizedTopic.story.title);
+assert.equal(normalizedTopic.comicPlan.coreMessage, normalizedTopic.story.coreMessage);
 assert.equal(normalizedTopic.comicPlan.pages[0].panelCount, 1);
 assert.deepEqual(normalizedTopic.comicPlan.pages[0].requiredText, [
   "页面标题",
@@ -312,6 +316,7 @@ console.log(JSON.stringify({
     "numeric age serialization",
     "character list-shaped fields",
     "composition freedom from panel directions",
+    "comic plan title and core message from story artifact",
     "page prompt and output paths",
     "preset style lock",
   ],
