@@ -22,6 +22,12 @@ function resolvePreset(input, styleCatalog) {
   return (styleCatalog?.presets ?? []).find((entry) => entry.id === input?.visual?.preset) ?? null;
 }
 
+function wrapNonEmptyStringAsArray(value) {
+  if (Array.isArray(value)) return value;
+  if (nonEmptyString(value)) return [value.trim()];
+  return value;
+}
+
 function plannerContractFacts(input, styleCatalog) {
   const suppliedStory = usesSuppliedStory(input);
   const preset = resolvePreset(input, styleCatalog);
@@ -79,11 +85,14 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
     normalized.characterBible.seriesMode =
       input?.mode === "series-continuation" || input?.series?.enabled === true;
     for (const character of normalized.characterBible.characters ?? []) {
-      if (!character?.immutable || typeof character.immutable !== "object" ||
-          Array.isArray(character.immutable)) continue;
-      if (Number.isFinite(character.immutable.age)) {
+      if (!character || typeof character !== "object" || Array.isArray(character)) continue;
+      if (character.immutable && typeof character.immutable === "object" &&
+          !Array.isArray(character.immutable) && Number.isFinite(character.immutable.age)) {
         character.immutable.age = String(character.immutable.age);
       }
+      character.expressionRange = wrapNonEmptyStringAsArray(character.expressionRange);
+      character.signatureActions = wrapNonEmptyStringAsArray(character.signatureActions);
+      character.forbiddenChanges = wrapNonEmptyStringAsArray(character.forbiddenChanges);
     }
   }
 
@@ -121,7 +130,7 @@ export function buildPlannerPrompt(input, styleCatalog) {
     `- emotionalCurve must be an array containing at least two non-empty, story-specific emotional states in narrative order. Derive it from the actual story; never omit it, return an empty array, or use generic placeholder values.\n` +
     `- claims must be an array, including [] when the story makes no claims needing review.\n` +
     `- CharacterBible requires seriesMode, at least one reproducible character, relationships, and seriesAssets. characterBible.seriesMode must equal INPUT-DETERMINED CONTRACT FACTS.seriesMode exactly.\n` +
-    `- Each character requires id, role, personality, immutable.age/face/hair/body/outfit/signatureColors/recurringProps, expressionRange, signatureActions, forbiddenChanges, referenceImages. Every immutable field must be a non-empty string or a non-empty array of strings. Write age as a descriptive string such as "30岁" or "成年", never as a JSON number.\n` +
+    `- Each character requires id, role, personality, immutable.age/face/hair/body/outfit/signatureColors/recurringProps, expressionRange, signatureActions, forbiddenChanges, referenceImages. expressionRange, signatureActions, forbiddenChanges, and referenceImages must be JSON arrays, never prose strings. Every immutable field must be a non-empty string or a non-empty array of strings. Write age as a descriptive string such as "30岁" or "成年", never as a JSON number.\n` +
     `- Copywriting requires platform, exactly 5 titleCandidates, summary, exactly 3 pullQuotes, exactly 10 tags, exactly 3 seriesNames, cta.\n\n` +
     `COMIC PLAN RULES\n` +
     `- Derive page and panel counts from the content when countMode is auto. Do not default to a fixed number. Honor totalPanelCount exactly when user-fixed.\n` +

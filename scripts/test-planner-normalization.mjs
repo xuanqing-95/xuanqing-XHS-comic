@@ -95,9 +95,9 @@ const malformedDeterministicFields = {
           signatureColors: ["black", "white"],
           recurringProps: ["马克杯"],
         },
-        expressionRange: ["疲惫", "释然"],
-        signatureActions: ["双手捧杯"],
-        forbiddenChanges: [],
+        expressionRange: "从强颜欢笑、皱眉焦虑，到眼神温柔的微笑。",
+        signatureActions: "双手捧杯",
+        forbiddenChanges: "不要改变黑色短发和黑色针织衫",
         referenceImages: [],
       },
     ],
@@ -135,6 +135,13 @@ assert.deepEqual(normalizedMalformed.topicAngles, {
 assert.equal(normalizedMalformed.story.sourceMode, "user-supplied");
 assert.equal(normalizedMalformed.characterBible.seriesMode, false);
 assert.equal(normalizedMalformed.characterBible.characters[0].immutable.age, "30");
+assert.deepEqual(normalizedMalformed.characterBible.characters[0].expressionRange, [
+  "从强颜欢笑、皱眉焦虑，到眼神温柔的微笑。",
+]);
+assert.deepEqual(normalizedMalformed.characterBible.characters[0].signatureActions, ["双手捧杯"]);
+assert.deepEqual(normalizedMalformed.characterBible.characters[0].forbiddenChanges, [
+  "不要改变黑色短发和黑色针织衫",
+]);
 assert.deepEqual(normalizedMalformed.visualLock.style, {
   presetId: preset.id,
   ...preset.lock,
@@ -148,6 +155,7 @@ for (const resolvedError of [
   "story.sourceMode must be user-supplied for input.mode story-to-comic",
   "characterBible.seriesMode must match the series input",
   "characterBible.characters[0].immutable.age must be a non-empty string or string array",
+  "characterBible.characters[0].expressionRange must be a non-empty string array",
   "visualLock.style.presetId must be a non-empty string",
   "visualLock.style.presetId must match input.visual.preset",
 ]) {
@@ -167,6 +175,7 @@ assert.match(prompt, /emotionalCurve must be an array containing at least two no
 assert.match(prompt, /never omit it, return an empty array, or use generic placeholder values/);
 assert.match(prompt, /Write age as a descriptive string/);
 assert.match(prompt, /never as a JSON number/);
+assert.match(prompt, /expressionRange, signatureActions, forbiddenChanges, and referenceImages must be JSON arrays/);
 
 const topicInput = structuredClone(storyInput);
 topicInput.mode = "topic-to-comic";
@@ -209,6 +218,7 @@ console.log(JSON.stringify({
     "story sourceMode",
     "character seriesMode",
     "numeric age serialization",
+    "character list-shaped fields",
     "preset style lock",
   ],
   semanticFieldsStillValidated: ["story.emotionalCurve"],

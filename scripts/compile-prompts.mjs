@@ -152,6 +152,9 @@ function validateCharacterBible(errors, bible, input) {
         }
       }
     }
+    if (!nonEmptyStringArray(character.expressionRange)) {
+      errors.push(`${base}.expressionRange must be a non-empty string array`);
+    }
     if (!Array.isArray(character.forbiddenChanges)) errors.push(`${base}.forbiddenChanges must be an array`);
   }
 }
