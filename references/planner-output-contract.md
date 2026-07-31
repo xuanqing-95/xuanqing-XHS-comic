@@ -52,6 +52,7 @@ The planner must not return `prompts`, `images`, `eval`, `evalReport`, `diagnosi
 - Set `topicAngles.status` to `generated`.
 - Return exactly three meaningfully different angles and select one of their IDs.
 - Set `story.sourceMode` to `generated`.
+- Treat `story.sourceFaithfulness` as input provenance, not a creative field. The runtime compiles it deterministically from the validated topic and core message so a complete otherwise-valid plan cannot fail because the model omitted this metadata.
 
 ### `story-to-comic`
 

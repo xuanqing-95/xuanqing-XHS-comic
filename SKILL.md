@@ -108,6 +108,8 @@ Write `story.json` with title, logline, summary, hook, escalation, turn, resolut
 
 Require conflict, progression, and a memorable ending, but vary the structure. Do not force every topic into identical “conflict → lecture → slogan” beats. Prefer concrete human action and natural dialogue over explanatory monologues.
 
+For topic-led generation, treat `sourceFaithfulness` as deterministic input provenance compiled from the validated topic and core message. For a user-supplied story, keep it planner-authored so it truthfully explains any clarity or pacing edits. Never use deterministic provenance to bypass semantic validation of the story, emotional curve, or传播 angles.
+
 ### 4. Build the character and series bible
 
 Write `character-bible.json`, then compile `visual-lock.json` from it.

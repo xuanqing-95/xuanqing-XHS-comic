@@ -203,17 +203,38 @@ assert.match(prompt, /Page 1 must use promptFile "prompts\/01\.md"/);
 const topicInput = structuredClone(storyInput);
 topicInput.mode = "topic-to-comic";
 topicInput.source.story = null;
+const topicStoryWithoutSourceFaithfulness = {
+  ...malformedDeterministicFields.story,
+  sourceMode: "user-supplied",
+};
+delete topicStoryWithoutSourceFaithfulness.sourceFaithfulness;
 const topicPackage = {
   topicAngles: malformedDeterministicFields.topicAngles,
-  story: { ...malformedDeterministicFields.story, sourceMode: "user-supplied" },
+  story: topicStoryWithoutSourceFaithfulness,
   visualLock: malformedDeterministicFields.visualLock,
 };
 const normalizedTopic = normalizePlannerPackage(topicPackage, topicInput, styleCatalog);
 assert.equal(normalizedTopic.story.sourceMode, "generated");
+assert.equal(
+  normalizedTopic.story.sourceFaithfulness,
+  "围绕用户提供的主题与核心观点「爱自己才是最好的风水」进行原创展开，不改变其表达方向。",
+);
 assert.deepEqual(
   normalizedTopic.topicAngles,
   topicPackage.topicAngles,
   "topic-led semantic angles must not be overwritten",
+);
+assert.ok(
+  !validatePlannerPackage(normalizedTopic, topicInput, styleCatalog).includes(
+    "story.sourceFaithfulness must be a non-empty string",
+  ),
+  "topic-led source provenance must be compiled from validated input instead of left to planner formatting",
+);
+
+const topicPrompt = buildPlannerPrompt(topicInput, styleCatalog);
+assert.match(
+  topicPrompt,
+  /"storySourceFaithfulness": "围绕用户提供的主题与核心观点「爱自己才是最好的风水」进行原创展开，不改变其表达方向。"/,
 );
 
 const customInput = structuredClone(storyInput);
@@ -239,6 +260,7 @@ console.log(JSON.stringify({
   deterministicCorrections: [
     "supplied-story topicAngles",
     "story sourceMode",
+    "topic-led story source faithfulness",
     "character seriesMode",
     "numeric age serialization",
     "character list-shaped fields",

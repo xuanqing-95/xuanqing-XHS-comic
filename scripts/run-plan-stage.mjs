@@ -17,6 +17,25 @@ function usesSuppliedStory(input) {
   return nonEmptyString(input?.source?.story) || nonEmptyString(input?.source?.draft);
 }
 
+function generatedStorySourceFaithfulness(input) {
+  const topic = nonEmptyString(input?.source?.topic) ? input.source.topic.trim() : "";
+  const coreMessage = nonEmptyString(input?.coreMessage) ? input.coreMessage.trim() : "";
+  const language = String(input?.language || "").toLowerCase();
+  const values = [...new Set([topic, coreMessage].filter(Boolean))];
+
+  if (language.startsWith("zh")) {
+    if (values.length === 1) {
+      return `围绕用户提供的主题与核心观点「${values[0]}」进行原创展开，不改变其表达方向。`;
+    }
+    return `围绕用户提供的主题「${topic}」和核心观点「${coreMessage}」进行原创展开，不改变二者的表达方向。`;
+  }
+
+  if (values.length === 1) {
+    return `Expand the user-supplied topic and core message "${values[0]}" without changing its direction.`;
+  }
+  return `Expand the user-supplied topic "${topic}" and core message "${coreMessage}" without changing their direction.`;
+}
+
 function resolvePreset(input, styleCatalog) {
   if (input?.visual?.styleMode !== "preset") return null;
   return (styleCatalog?.presets ?? []).find((entry) => entry.id === input?.visual?.preset) ?? null;
@@ -75,6 +94,8 @@ function plannerContractFacts(input, styleCatalog) {
           skipReason: null,
         },
     storySourceMode: suppliedStory ? "user-supplied" : "generated",
+    storySourceFaithfulness: suppliedStory ? "planner-authored explanation of preserved story edits" :
+      generatedStorySourceFaithfulness(input),
     seriesMode: input?.mode === "series-continuation" || input?.series?.enabled === true,
     presetStyle: preset ? { presetId: preset.id, ...structuredClone(preset.lock) } : null,
   };
@@ -103,6 +124,9 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
 
   if (normalized.story && typeof normalized.story === "object" && !Array.isArray(normalized.story)) {
     normalized.story.sourceMode = suppliedStory ? "user-supplied" : "generated";
+    if (!suppliedStory) {
+      normalized.story.sourceFaithfulness = generatedStorySourceFaithfulness(input);
+    }
   }
 
   if (normalized.characterBible && typeof normalized.characterBible === "object" &&

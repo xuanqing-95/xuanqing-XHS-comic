@@ -76,6 +76,7 @@ For `generated`, require exactly three genuinely different angles. For `skipped`
 ```
 
 Use `sourceMode: user-supplied` for preserved stories. Record meaningful changes in `sourceFaithfulness`.
+For topic-led generated stories, the runtime compiles `sourceFaithfulness` from the validated topic and core message. Do not use that deterministic provenance field as a substitute for evaluating whether the generated story actually stayed faithful.
 
 ## 4. `character-bible.json`
 
