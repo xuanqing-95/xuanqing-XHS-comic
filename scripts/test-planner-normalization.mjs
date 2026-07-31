@@ -108,7 +108,18 @@ const malformedDeterministicFields = {
       columnName: null,
     },
   },
-  comicPlan: {},
+  comicPlan: {
+    compositionFreedom: "自由构图",
+    pages: [
+      {
+        panels: [
+          {
+            direction: "中景，人物位于画面左侧。",
+          },
+        ],
+      },
+    ],
+  },
   visualLock: {
     version: 3,
     style: {
@@ -142,6 +153,7 @@ assert.deepEqual(normalizedMalformed.characterBible.characters[0].signatureActio
 assert.deepEqual(normalizedMalformed.characterBible.characters[0].forbiddenChanges, [
   "不要改变黑色短发和黑色针织衫",
 ]);
+assert.equal(normalizedMalformed.comicPlan.compositionFreedom, "director-locked");
 assert.deepEqual(normalizedMalformed.visualLock.style, {
   presetId: preset.id,
   ...preset.lock,
@@ -156,6 +168,8 @@ for (const resolvedError of [
   "characterBible.seriesMode must match the series input",
   "characterBible.characters[0].immutable.age must be a non-empty string or string array",
   "characterBible.characters[0].expressionRange must be a non-empty string array",
+  "comicPlan.compositionFreedom must be model-arranged or director-locked",
+  "comicPlan.pages[0].panels[0].direction must be null for model-arranged composition",
   "visualLock.style.presetId must be a non-empty string",
   "visualLock.style.presetId must match input.visual.preset",
 ]) {
@@ -176,6 +190,8 @@ assert.match(prompt, /never omit it, return an empty array, or use generic place
 assert.match(prompt, /Write age as a descriptive string/);
 assert.match(prompt, /never as a JSON number/);
 assert.match(prompt, /expressionRange, signatureActions, forbiddenChanges, and referenceImages must be JSON arrays/);
+assert.match(prompt, /compositionFreedom must be exactly "model-arranged" or "director-locked"/);
+assert.match(prompt, /If any panel has a non-empty direction, compositionFreedom must be "director-locked"/);
 
 const topicInput = structuredClone(storyInput);
 topicInput.mode = "topic-to-comic";
@@ -219,6 +235,7 @@ console.log(JSON.stringify({
     "character seriesMode",
     "numeric age serialization",
     "character list-shaped fields",
+    "composition freedom from panel directions",
     "preset style lock",
   ],
   semanticFieldsStillValidated: ["story.emotionalCurve"],
