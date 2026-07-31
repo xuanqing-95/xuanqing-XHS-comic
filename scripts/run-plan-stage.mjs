@@ -7,16 +7,105 @@ import { loadRoute, runJsonChat } from "./provider-clients.mjs";
 import { updateDebug, updateResult, writeJsonAtomic } from "./run-artifacts.mjs";
 import { stableHash } from "./usage-contract.mjs";
 
-function buildPlannerPrompt(input, styleCatalog) {
+function nonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function usesSuppliedStory(input) {
+  if (input?.mode === "story-to-comic") return true;
+  if (input?.mode !== "series-continuation") return false;
+  return nonEmptyString(input?.source?.story) || nonEmptyString(input?.source?.draft);
+}
+
+function resolvePreset(input, styleCatalog) {
+  if (input?.visual?.styleMode !== "preset") return null;
+  return (styleCatalog?.presets ?? []).find((entry) => entry.id === input?.visual?.preset) ?? null;
+}
+
+function plannerContractFacts(input, styleCatalog) {
+  const suppliedStory = usesSuppliedStory(input);
+  const preset = resolvePreset(input, styleCatalog);
+  return {
+    topicAngles: suppliedStory
+      ? {
+          version: 3,
+          status: "skipped",
+          angles: [],
+          selectedAngleId: null,
+          selectionReason: null,
+          skipReason: "用户已提供可直接改编的故事，因此跳过传播角度生成。",
+        }
+      : {
+          version: 3,
+          status: "generated",
+          angles: "exactly 3 complete angle objects",
+          selectedAngleId: "one generated angle id",
+          selectionReason: "non-empty string",
+          skipReason: null,
+        },
+    storySourceMode: suppliedStory ? "user-supplied" : "generated",
+    presetStyle: preset ? { presetId: preset.id, ...structuredClone(preset.lock) } : null,
+  };
+}
+
+/**
+ * Canonicalize only values already determined by the accepted input contract.
+ * Narrative judgments such as emotionalCurve remain the planner's responsibility.
+ */
+export function normalizePlannerPackage(pkg, input, styleCatalog) {
+  if (pkg === null || typeof pkg !== "object" || Array.isArray(pkg)) return pkg;
+  const normalized = structuredClone(pkg);
+  const suppliedStory = usesSuppliedStory(input);
+
+  if (suppliedStory && normalized.topicAngles && typeof normalized.topicAngles === "object" &&
+      !Array.isArray(normalized.topicAngles)) {
+    normalized.topicAngles = {
+      version: 3,
+      status: "skipped",
+      angles: [],
+      selectedAngleId: null,
+      selectionReason: null,
+      skipReason: "用户已提供可直接改编的故事，因此跳过传播角度生成。",
+    };
+  }
+
+  if (normalized.story && typeof normalized.story === "object" && !Array.isArray(normalized.story)) {
+    normalized.story.sourceMode = suppliedStory ? "user-supplied" : "generated";
+  }
+
+  const preset = resolvePreset(input, styleCatalog);
+  if (preset && normalized.visualLock && typeof normalized.visualLock === "object" &&
+      !Array.isArray(normalized.visualLock)) {
+    normalized.visualLock.style = {
+      presetId: preset.id,
+      ...structuredClone(preset.lock),
+    };
+  }
+
+  return normalized;
+}
+
+export function buildPlannerPrompt(input, styleCatalog) {
+  const contractFacts = plannerContractFacts(input, styleCatalog);
   return `You are the planning engine for an executable social-comic production run.\n` +
     `Return one strict JSON object and no Markdown. Your output will be rejected unless every contract field is complete.\n\n` +
     `USER INPUT\n${JSON.stringify(input, null, 2)}\n\n` +
     `STYLE CATALOG\n${JSON.stringify(styleCatalog, null, 2)}\n\n` +
+    `INPUT-DETERMINED CONTRACT FACTS\n${JSON.stringify(contractFacts, null, 2)}\n` +
+    `These facts come from validated input, not creative judgment. Return values consistent with them. The runtime will canonicalize these exact fields before validation.\n\n` +
     `Return exactly these six top-level keys: topicAngles, story, characterBible, comicPlan, visualLock, copywriting. ` +
     `Every artifact must have version 3.\n\n` +
+    `REQUIRED JSON SHAPES\n` +
+    `- topicAngles: {version, status, angles, selectedAngleId, selectionReason, skipReason}. A generated angle requires id, title, audienceTension, conflict, emotion, turn, comicFit.\n` +
+    `- story: {version, sourceMode, title, logline, coreMessage, summary, structure, emotionalCurve, claims, sourceFaithfulness}. structure requires hook, escalation, turn, resolution, endingHook.\n` +
+    `- characterBible: {version, seriesMode, characters, relationships, seriesAssets}.\n` +
+    `- comicPlan: {version, title, coreMessage, compositionFreedom, compositionReason, pageCount, countReason, aspectRatio, quality, textStrategy, generationStrategy, pages}.\n` +
+    `- visualLock: {version, lockId, sourceCharacterBible, style, characters, output, referenceImages}.\n` +
+    `- copywriting: {version, platform, titleCandidates, summary, pullQuotes, tags, seriesNames, cta}.\n\n` +
     `CONTENT RULES\n` +
-    `- For topic-to-comic, create exactly three distinct angles and select one. For supplied-story modes, preserve the story and mark topicAngles skipped.\n` +
-    `- Story requires sourceMode, title, logline, coreMessage, summary, structure.hook/escalation/turn/resolution/endingHook, emotionalCurve, claims, sourceFaithfulness.\n` +
+    `- Follow INPUT-DETERMINED CONTRACT FACTS exactly. For topic-led planning, create exactly three distinct angles and select one. For supplied-story planning, preserve the supplied story and do not invent angles.\n` +
+    `- emotionalCurve must be an array containing at least two non-empty, story-specific emotional states in narrative order. Derive it from the actual story; never omit it, return an empty array, or use generic placeholder values.\n` +
+    `- claims must be an array, including [] when the story makes no claims needing review.\n` +
     `- CharacterBible requires seriesMode, at least one reproducible character, relationships, and seriesAssets. Each character requires id, role, personality, immutable.age/face/hair/body/outfit/signatureColors/recurringProps, expressionRange, signatureActions, forbiddenChanges, referenceImages.\n` +
     `- Copywriting requires platform, exactly 5 titleCandidates, summary, exactly 3 pullQuotes, exactly 10 tags, exactly 3 seriesNames, cta.\n\n` +
     `COMIC PLAN RULES\n` +
@@ -81,20 +170,21 @@ export function createPlanStage(context) {
       throw error;
     }
 
-    const plannerErrors = validatePlannerPackage(response.data, input, styleCatalog);
+    const plannerPackage = normalizePlannerPackage(response.data, input, styleCatalog);
+    const plannerErrors = validatePlannerPackage(plannerPackage, input, styleCatalog);
     if (plannerErrors.length > 0) throw new Error(`Planner output failed its contract:\n${plannerErrors.join("\n")}`);
-    await writePlannerArtifacts(runDir, response.data);
-    const letteringPlan = buildLetteringPlan(response.data.comicPlan);
+    await writePlannerArtifacts(runDir, plannerPackage);
+    const letteringPlan = buildLetteringPlan(plannerPackage.comicPlan);
     if (letteringPlan) await writeJsonAtomic(path.join(runDir, "lettering-plan.json"), letteringPlan);
     const compiled = compilePagePrompts({
       input,
-      plan: response.data.comicPlan,
-      visualLock: response.data.visualLock,
-      characterBible: response.data.characterBible,
+      plan: plannerPackage.comicPlan,
+      visualLock: plannerPackage.visualLock,
+      characterBible: plannerPackage.characterBible,
     });
     for (const prompt of compiled) await writeFile(path.join(runDir, prompt.file), prompt.content, "utf8");
 
-    const plan = response.data.comicPlan;
+    const plan = plannerPackage.comicPlan;
     const result = {
       status: "planned",
       pageCount: plan.pageCount,

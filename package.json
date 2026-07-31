@@ -1,6 +1,6 @@
 {
   "name": "social-comic-generator",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "type": "module",
   "engines": {
@@ -10,7 +10,7 @@
     "preflight": "node scripts/runtime-preflight.mjs",
     "verify:skill": "python3 scripts/quick-validate-wrapper.py",
     "verify:standalone": "node scripts/verify-standalone.mjs",
-    "verify:contracts": "node scripts/test-adapter-contracts.mjs && node scripts/test-reference-assets.mjs && node scripts/test-delivery-manifest.mjs && node scripts/test-usage-contract.mjs",
+    "verify:contracts": "node scripts/test-adapter-contracts.mjs && node scripts/test-planner-normalization.mjs && node scripts/test-reference-assets.mjs && node scripts/test-delivery-manifest.mjs && node scripts/test-usage-contract.mjs",
     "verify:routes": "node scripts/test-image-route-capabilities.mjs && node scripts/test-codex-builtin-preparation.mjs && node scripts/test-codex-builtin-ingestion.mjs && node scripts/test-codex-builtin-failure-recording.mjs",
     "verify:runners": "node scripts/test-runner.mjs && node scripts/test-post-layout.mjs && node scripts/test-post-layout-runner.mjs",
     "verify:relay": "node scripts/test-relay-provider.mjs",
