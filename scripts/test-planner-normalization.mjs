@@ -112,6 +112,8 @@ const malformedDeterministicFields = {
     compositionFreedom: "自由构图",
     pages: [
       {
+        promptFile: "提示词/第一页.md",
+        outputFile: "成图/第一页.png",
         panels: [
           {
             direction: "中景，人物位于画面左侧。",
@@ -154,6 +156,8 @@ assert.deepEqual(normalizedMalformed.characterBible.characters[0].forbiddenChang
   "不要改变黑色短发和黑色针织衫",
 ]);
 assert.equal(normalizedMalformed.comicPlan.compositionFreedom, "director-locked");
+assert.equal(normalizedMalformed.comicPlan.pages[0].promptFile, "prompts/01.md");
+assert.equal(normalizedMalformed.comicPlan.pages[0].outputFile, "images/01.png");
 assert.deepEqual(normalizedMalformed.visualLock.style, {
   presetId: preset.id,
   ...preset.lock,
@@ -170,6 +174,8 @@ for (const resolvedError of [
   "characterBible.characters[0].expressionRange must be a non-empty string array",
   "comicPlan.compositionFreedom must be model-arranged or director-locked",
   "comicPlan.pages[0].panels[0].direction must be null for model-arranged composition",
+  "comicPlan.pages[0].promptFile must be prompts/01.md",
+  "comicPlan.pages[0].outputFile must be images/01.png",
   "visualLock.style.presetId must be a non-empty string",
   "visualLock.style.presetId must match input.visual.preset",
 ]) {
@@ -192,6 +198,7 @@ assert.match(prompt, /never as a JSON number/);
 assert.match(prompt, /expressionRange, signatureActions, forbiddenChanges, and referenceImages must be JSON arrays/);
 assert.match(prompt, /compositionFreedom must be exactly "model-arranged" or "director-locked"/);
 assert.match(prompt, /If any panel has a non-empty direction, compositionFreedom must be "director-locked"/);
+assert.match(prompt, /Page 1 must use promptFile "prompts\/01\.md"/);
 
 const topicInput = structuredClone(storyInput);
 topicInput.mode = "topic-to-comic";
@@ -236,6 +243,7 @@ console.log(JSON.stringify({
     "numeric age serialization",
     "character list-shaped fields",
     "composition freedom from panel directions",
+    "page prompt and output paths",
     "preset style lock",
   ],
   semanticFieldsStillValidated: ["story.emotionalCurve"],

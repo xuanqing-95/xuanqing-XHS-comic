@@ -42,6 +42,17 @@ function normalizeCompositionFreedom(comicPlan) {
   }
 }
 
+function normalizePageFiles(comicPlan) {
+  if (!comicPlan || typeof comicPlan !== "object" || Array.isArray(comicPlan)) return;
+  if (!Array.isArray(comicPlan.pages)) return;
+  comicPlan.pages.forEach((page, index) => {
+    if (!page || typeof page !== "object" || Array.isArray(page)) return;
+    const number = String(index + 1).padStart(2, "0");
+    page.promptFile = `prompts/${number}.md`;
+    page.outputFile = `images/${number}.png`;
+  });
+}
+
 function plannerContractFacts(input, styleCatalog) {
   const suppliedStory = usesSuppliedStory(input);
   const preset = resolvePreset(input, styleCatalog);
@@ -120,6 +131,7 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
   }
 
   normalizeCompositionFreedom(normalized.comicPlan);
+  normalizePageFiles(normalized.comicPlan);
 
   return normalized;
 }
@@ -155,7 +167,7 @@ export function buildPlannerPrompt(input, styleCatalog) {
     `- If textStrategy is post-layout, compositionFreedom must be director-locked. Every page must add textPlacements with exactly one item for each requiredText index: id, requiredTextIndex, exact text, panelId, kind title|speech|thought|caption, tail none|left|right, and a non-overlapping normalized integer box x/y/width/height on a 0..1000 page. Keep boxes at least 100x60 and inside the page. Panel directions must keep faces, bodies, props, borders, and important detail outside those boxes.\n` +
     `- If textStrategy is native, omit textPlacements.\n` +
     `- generationStrategy is reference-parallel, anchor-first-fanout, local-identity-lock, or style-lock-parallel. Choose based on actual identity/reference needs.\n` +
-    `- Each page requires id, purpose, change, scene, panelCount, panels, requiredText, promptFile prompts/NN.md, outputFile images/NN.png.\n` +
+    `- Each page requires id, purpose, change, scene, panelCount, panels, requiredText, promptFile, outputFile. Page 1 must use promptFile "prompts/01.md" and outputFile "images/01.png"; page 2 must use "prompts/02.md" and "images/02.png"; continue with the same zero-padded index. Do not translate, rename, or add prefixes to these paths.\n` +
     `- Each panel requires id, change, action, emotion, dialogue array, and direction. If any panel has a non-empty direction, compositionFreedom must be "director-locked" and every panel needs a direction. For "model-arranged", every panel direction must be null.\n` +
     `- requiredText contains only exact title/dialogue/narration that must render; it is not a whitelist of harmless environmental marks.\n` +
     `- Omit exactSize everywhere unless input.output.exactSize exists. If it exists, copy it unchanged to comicPlan.exactSize and visualLock.output.exactSize.\n\n` +
