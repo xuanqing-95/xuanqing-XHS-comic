@@ -78,7 +78,36 @@ const malformedDeterministicFields = {
     claims: [],
     sourceFaithfulness: "保留用户原句，并把它展开成可视化剧情。",
   },
-  characterBible: {},
+  characterBible: {
+    version: 3,
+    seriesMode: true,
+    characters: [
+      {
+        id: "char-01",
+        role: "主角",
+        personality: ["逐渐学会自我关怀"],
+        immutable: {
+          age: 30,
+          face: "圆脸",
+          hair: "黑色短发",
+          body: "成年女性比例",
+          outfit: "黑色针织衫",
+          signatureColors: ["black", "white"],
+          recurringProps: ["马克杯"],
+        },
+        expressionRange: ["疲惫", "释然"],
+        signatureActions: ["双手捧杯"],
+        forbiddenChanges: [],
+        referenceImages: [],
+      },
+    ],
+    relationships: [],
+    seriesAssets: {
+      characterSheetFiles: [],
+      styleAnchorFiles: [],
+      columnName: null,
+    },
+  },
   comicPlan: {},
   visualLock: {
     version: 3,
@@ -104,6 +133,8 @@ assert.deepEqual(normalizedMalformed.topicAngles, {
   skipReason: "用户已提供可直接改编的故事，因此跳过传播角度生成。",
 });
 assert.equal(normalizedMalformed.story.sourceMode, "user-supplied");
+assert.equal(normalizedMalformed.characterBible.seriesMode, false);
+assert.equal(normalizedMalformed.characterBible.characters[0].immutable.age, "30");
 assert.deepEqual(normalizedMalformed.visualLock.style, {
   presetId: preset.id,
   ...preset.lock,
@@ -115,6 +146,8 @@ for (const resolvedError of [
   "topicAngles.selectedAngleId must be null when skipped",
   "topicAngles.skipReason must be a non-empty string",
   "story.sourceMode must be user-supplied for input.mode story-to-comic",
+  "characterBible.seriesMode must match the series input",
+  "characterBible.characters[0].immutable.age must be a non-empty string or string array",
   "visualLock.style.presetId must be a non-empty string",
   "visualLock.style.presetId must match input.visual.preset",
 ]) {
@@ -128,9 +161,12 @@ assert.ok(
 const prompt = buildPlannerPrompt(storyInput, styleCatalog);
 assert.match(prompt, /INPUT-DETERMINED CONTRACT FACTS/);
 assert.match(prompt, /"storySourceMode": "user-supplied"/);
+assert.match(prompt, /"seriesMode": false/);
 assert.match(prompt, /"presetId": "black-white-screentone-manga"/);
 assert.match(prompt, /emotionalCurve must be an array containing at least two non-empty, story-specific emotional states/);
 assert.match(prompt, /never omit it, return an empty array, or use generic placeholder values/);
+assert.match(prompt, /Write age as a descriptive string/);
+assert.match(prompt, /never as a JSON number/);
 
 const topicInput = structuredClone(storyInput);
 topicInput.mode = "topic-to-comic";
@@ -171,6 +207,8 @@ console.log(JSON.stringify({
   deterministicCorrections: [
     "supplied-story topicAngles",
     "story sourceMode",
+    "character seriesMode",
+    "numeric age serialization",
     "preset style lock",
   ],
   semanticFieldsStillValidated: ["story.emotionalCurve"],

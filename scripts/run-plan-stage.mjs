@@ -44,6 +44,7 @@ function plannerContractFacts(input, styleCatalog) {
           skipReason: null,
         },
     storySourceMode: suppliedStory ? "user-supplied" : "generated",
+    seriesMode: input?.mode === "series-continuation" || input?.series?.enabled === true,
     presetStyle: preset ? { presetId: preset.id, ...structuredClone(preset.lock) } : null,
   };
 }
@@ -71,6 +72,19 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
 
   if (normalized.story && typeof normalized.story === "object" && !Array.isArray(normalized.story)) {
     normalized.story.sourceMode = suppliedStory ? "user-supplied" : "generated";
+  }
+
+  if (normalized.characterBible && typeof normalized.characterBible === "object" &&
+      !Array.isArray(normalized.characterBible)) {
+    normalized.characterBible.seriesMode =
+      input?.mode === "series-continuation" || input?.series?.enabled === true;
+    for (const character of normalized.characterBible.characters ?? []) {
+      if (!character?.immutable || typeof character.immutable !== "object" ||
+          Array.isArray(character.immutable)) continue;
+      if (Number.isFinite(character.immutable.age)) {
+        character.immutable.age = String(character.immutable.age);
+      }
+    }
   }
 
   const preset = resolvePreset(input, styleCatalog);
@@ -106,7 +120,8 @@ export function buildPlannerPrompt(input, styleCatalog) {
     `- Follow INPUT-DETERMINED CONTRACT FACTS exactly. For topic-led planning, create exactly three distinct angles and select one. For supplied-story planning, preserve the supplied story and do not invent angles.\n` +
     `- emotionalCurve must be an array containing at least two non-empty, story-specific emotional states in narrative order. Derive it from the actual story; never omit it, return an empty array, or use generic placeholder values.\n` +
     `- claims must be an array, including [] when the story makes no claims needing review.\n` +
-    `- CharacterBible requires seriesMode, at least one reproducible character, relationships, and seriesAssets. Each character requires id, role, personality, immutable.age/face/hair/body/outfit/signatureColors/recurringProps, expressionRange, signatureActions, forbiddenChanges, referenceImages.\n` +
+    `- CharacterBible requires seriesMode, at least one reproducible character, relationships, and seriesAssets. characterBible.seriesMode must equal INPUT-DETERMINED CONTRACT FACTS.seriesMode exactly.\n` +
+    `- Each character requires id, role, personality, immutable.age/face/hair/body/outfit/signatureColors/recurringProps, expressionRange, signatureActions, forbiddenChanges, referenceImages. Every immutable field must be a non-empty string or a non-empty array of strings. Write age as a descriptive string such as "30岁" or "成年", never as a JSON number.\n` +
     `- Copywriting requires platform, exactly 5 titleCandidates, summary, exactly 3 pullQuotes, exactly 10 tags, exactly 3 seriesNames, cta.\n\n` +
     `COMIC PLAN RULES\n` +
     `- Derive page and panel counts from the content when countMode is auto. Do not default to a fixed number. Honor totalPanelCount exactly when user-fixed.\n` +
