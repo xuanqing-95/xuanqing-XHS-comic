@@ -314,6 +314,7 @@ async function runEvaluate(input) {
   await updateResult(runDir, {
     ...resultBefore,
     status: evalReport.status === "pass" && diagnosis.status === "no-material-failure" ? "reviewed" : "needs-review",
+    error: null,
   });
   const report = runValidator();
   await addDebugEvent("evaluate", "completed", {
@@ -506,7 +507,11 @@ async function main() {
       if (stage === "evaluate") await runEvaluate(input);
     } catch (error) {
       if (stage === "evaluate") {
-        await updateResult(runDir, { ...(await readJson(path.join(runDir, "result.json"))), status: "generated" });
+        await updateResult(runDir, {
+          ...(await readJson(path.join(runDir, "result.json"))),
+          status: "generated",
+          error: null,
+        });
         await addDebugEvent("evaluate", "blocked", { error: serializeError(error) });
       } else {
         const plan = await readJsonIfExists(path.join(runDir, "comic-plan.json"));

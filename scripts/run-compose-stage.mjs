@@ -106,6 +106,7 @@ export function createComposeStage(context) {
     const actualDimensions = pages.map((page) => ({ file: page.outputFile, ...page.outputDimensions }));
     const result = {
       status: "generated",
+      error: null,
       pageCount: plan.pageCount,
       aspectRatio: plan.aspectRatio,
       sourcePages: pages.map((page) => page.sourceFile),

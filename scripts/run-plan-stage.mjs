@@ -358,6 +358,7 @@ export function createPlanStage(context) {
     const plan = plannerPackage.comicPlan;
     const result = {
       status: "planned",
+      error: null,
       pageCount: plan.pageCount,
       aspectRatio: plan.aspectRatio,
       contentPackage: { story: "story.json", characters: "character-bible.json", copywriting: "copywriting.json" },

@@ -281,6 +281,7 @@ try {
   assert.equal(completed.status, 0, completed.stdout || completed.stderr);
   const result = JSON.parse(await readFile(path.join(fullRun, "result.json"), "utf8"));
   assert.equal(result.status, "reviewed");
+  assert.equal(result.error, null, "reviewed post-layout runs must clear the fail-closed initialization error");
   assert.deepEqual(result.sourcePages, ["source-images/01.png"]);
   assert.deepEqual(result.pages, ["images/01.png"]);
   assert.deepEqual(result.sourceActualDimensions, [{ file: "source-images/01.png", width: 600, height: 800 }]);

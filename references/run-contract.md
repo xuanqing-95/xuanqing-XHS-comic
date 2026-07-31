@@ -236,6 +236,8 @@ Record actual usage only. New runs use `usage.status: complete|partial|unavailab
 
 Every planner, page generation/edit, and evaluator call has a stable `callId`, role, stage, operation, provider/model/pricing key, status, metering status, input/output hashes, timestamps, request ID when exposed, and raw provider usage when available. Write a `started/pending` intent before the request, then update the same `callId` after completion so a crashed process leaves an explicit ambiguous receipt rather than silently retrying. A resume may reuse a fully evidenced page, but must not automatically repeat a `started` call whose provider outcome is unknown. Local post-layout compose records `meteringStatus: not_applicable`; it is not a fake zero-token model call.
 
+Every successful lifecycle transition (`planned`, `generated-unlettered`, `generated`, `reviewed`, or `needs-review`) must set `result.error` to `null`. Only a real failed transition may retain a non-empty error; the fail-closed initialization placeholder must never survive a successful stage.
+
 Parallel image calls must serialize only their `usage.json` read-modify-write commits. This preserves image concurrency while preventing one completed page receipt from overwriting another; incomplete usage must still fail closed before upload or settlement.
 
 ## Deterministic post-layout compositor

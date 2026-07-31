@@ -221,6 +221,7 @@ export function createGenerateStage(context) {
     const postLayout = input.output?.textStrategy === "post-layout";
     const result = {
       status: postLayout ? "generated-unlettered" : "generated",
+      error: null,
       pageCount: plan.pageCount,
       aspectRatio: plan.aspectRatio,
       ...(postLayout ? {

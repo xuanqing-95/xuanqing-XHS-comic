@@ -358,6 +358,9 @@ try {
   ], env);
   assert.equal(plannedOnly.status, 0, plannedOnly.stdout || plannedOnly.stderr);
   assert.deepEqual(counts, { planner: 1, vision: 0, generations: 0, edits: 0 });
+  const plannedOnlyResult = JSON.parse(await readFile(path.join(capabilityBlockedRun, "result.json"), "utf8"));
+  assert.equal(plannedOnlyResult.status, "planned");
+  assert.equal(plannedOnlyResult.error, null, "successful planning must clear the fail-closed initialization error");
   const capabilityBlocked = await runNode([
     runScript,
     "--input", inputPath,
@@ -395,6 +398,7 @@ try {
   assert.deepEqual(counts, { planner: 2, vision: 1, generations: 0, edits: 2 });
   const result = JSON.parse(await readFile(path.join(fullRun, "result.json"), "utf8"));
   assert.equal(result.status, "reviewed");
+  assert.equal(result.error, null, "reviewed runs must never retain a stale initialization error");
   assert.deepEqual(result.actualDimensions, [
     { file: "images/01.png", width: 3, height: 4 },
     { file: "images/02.png", width: 3, height: 4 },
