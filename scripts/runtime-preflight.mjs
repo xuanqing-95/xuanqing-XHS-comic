@@ -29,8 +29,8 @@ const [packageJson, manifest, fontRoute] = await Promise.all([
   readJson("skill-manifest.json"),
   readJson("references/routes/bundled-sharp-post-layout.json"),
 ]);
-if (packageJson.version !== manifest.version || manifest.version !== "0.3.13") {
-  throw new Error("package.json and skill-manifest.json must both declare version 0.3.13");
+if (packageJson.version !== manifest.version || manifest.version !== "0.3.14") {
+  throw new Error("package.json and skill-manifest.json must both declare version 0.3.14");
 }
 if (packageJson.dependencies?.sharp !== "0.35.3") {
   throw new Error("sharp must be pinned exactly to 0.35.3");

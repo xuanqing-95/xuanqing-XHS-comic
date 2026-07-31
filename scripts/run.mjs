@@ -11,6 +11,7 @@ import {
   buildEvalReport,
   buildEvaluatorPrompt,
   buildEvaluatorRepairPrompt,
+  normalizeSubjectiveEvaluation,
   validateSubjectiveEvaluation,
 } from "./evaluation-utils.mjs";
 import { postLayoutSourceFile } from "./post-layout.mjs";
@@ -276,6 +277,7 @@ async function runEvaluate(input) {
     await recordUsage(failedModelCall(intent, error));
     throw error;
   }
+  response.data = normalizeSubjectiveEvaluation(response.data);
   let subjectiveErrors = validateSubjectiveEvaluation(response.data, { plan, input, visualLock, characterBible });
   if (subjectiveErrors.length > 0) {
     await addDebugEvent("evaluate-contract-repair", "running", { validationErrors: subjectiveErrors });
@@ -308,6 +310,7 @@ async function runEvaluate(input) {
       await recordUsage(failedModelCall(repairIntent, error));
       throw error;
     }
+    response.data = normalizeSubjectiveEvaluation(response.data);
     subjectiveErrors = validateSubjectiveEvaluation(response.data, { plan, input, visualLock, characterBible });
     if (subjectiveErrors.length > 0) {
       throw new Error(`Evaluator output failed its contract after one image-free repair attempt:\n${subjectiveErrors.join("\n")}`);

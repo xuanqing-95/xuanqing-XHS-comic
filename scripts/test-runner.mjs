@@ -275,7 +275,14 @@ const server = createServer(async (request, response) => {
         });
         return;
       }
-      jsonResponse(response, { choices: [{ message: { content: JSON.stringify(subjectiveEval) } }] });
+      const repaired = structuredClone(subjectiveEval);
+      for (const page of repaired.pages) {
+        delete page.textAudit.observed;
+        delete page.textAudit.errors;
+        page.evidence = page.evidence[0];
+      }
+      repaired.pairwise[0].evidence = repaired.pairwise[0].evidence[0];
+      jsonResponse(response, { choices: [{ message: { content: JSON.stringify(repaired) } }] });
     } else {
       counts.planner += 1;
       plannerPrompts.push(body.messages[1].content);
@@ -455,6 +462,11 @@ try {
   assert.deepEqual(usage.calls.map((call) => call.role), ["planner", "image", "image", "evaluator", "evaluator"]);
   assert.deepEqual(usage.calls.map((call) => call.operation), ["chat", "edit", "edit", "vision-chat", "vision-chat"]);
   assert.ok(usage.calls.every((call) => call.status === "succeeded" && call.meteringStatus === "unavailable"));
+  const evalReport = JSON.parse(await readFile(path.join(fullRun, "eval-report.json"), "utf8"));
+  assert.deepEqual(evalReport.pages.map((page) => page.textAudit.observed), [[], []]);
+  assert.deepEqual(evalReport.pages.map((page) => page.textAudit.errors), [[], []]);
+  assert.ok(evalReport.pages.every((page) => Array.isArray(page.evidence)));
+  assert.ok(evalReport.pairwise.every((pair) => Array.isArray(pair.evidence)));
   const debug = JSON.parse(await readFile(path.join(fullRun, "debug.json"), "utf8"));
   assert.deepEqual(debug.imageRoutePreflight.requiredOperations, ["edit"]);
   assert.equal(debug.imageRoutePreflight.request.requestedSize, "3x4");

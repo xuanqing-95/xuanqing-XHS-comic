@@ -90,6 +90,48 @@ function requireScores(object, keys, field, errors) {
   }
 }
 
+function normalizeStringArray(value) {
+  if (Array.isArray(value)) return value.filter((item) => typeof item === "string" && item.trim() !== "");
+  if (typeof value === "string" && value.trim() !== "") return [value.trim()];
+  return [];
+}
+
+export function normalizeSubjectiveEvaluation(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  const normalized = structuredClone(value);
+  for (const gate of Object.values(normalized.hardGates || {})) {
+    if (gate && typeof gate === "object" && !Array.isArray(gate)) {
+      gate.evidence = normalizeStringArray(gate.evidence);
+    }
+  }
+  const requiredTextGate = normalized.hardGates?.requiredText;
+  for (const page of normalized.pages || []) {
+    if (!page || typeof page !== "object" || Array.isArray(page)) continue;
+    page.evidence = normalizeStringArray(page.evidence);
+    if (!page.textAudit || typeof page.textAudit !== "object" || Array.isArray(page.textAudit)) {
+      page.textAudit = {};
+    }
+    page.textAudit.observed = normalizeStringArray(page.textAudit.observed);
+    const explicitErrors = normalizeStringArray(page.textAudit.errors);
+    page.textAudit.errors = explicitErrors.length > 0
+      ? explicitErrors
+      : requiredTextGate?.status === "fail"
+        ? (normalizeStringArray(requiredTextGate.evidence).length > 0
+            ? normalizeStringArray(requiredTextGate.evidence)
+            : ["The evaluator marked the required-text hard gate as failed."])
+        : [];
+    page.textAudit.observations = normalizeStringArray(page.textAudit.observations);
+  }
+  for (const pair of normalized.pairwise || []) {
+    if (pair && typeof pair === "object" && !Array.isArray(pair)) {
+      pair.evidence = normalizeStringArray(pair.evidence);
+    }
+  }
+  normalized.issues = normalizeStringArray(normalized.issues);
+  normalized.editorialRisks = normalizeStringArray(normalized.editorialRisks);
+  return normalized;
+}
+
 export function validateSubjectiveEvaluation(value, { plan, input, visualLock, characterBible }) {
   const errors = [];
   if (!value || typeof value !== "object" || Array.isArray(value)) {
