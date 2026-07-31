@@ -242,6 +242,8 @@ const tempDir = await mkdtemp(path.join(os.tmpdir(), "social-comic-runner-"));
 const counts = { planner: 0, vision: 0, generations: 0, edits: 0 };
 let imageNumber = 0;
 let wrongNextImage = false;
+let malformedNextVision = true;
+const visionPrompts = [];
 const server = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
@@ -251,6 +253,26 @@ const server = createServer(async (request, response) => {
     const isVision = Array.isArray(body.messages?.[1]?.content);
     if (isVision) {
       counts.vision += 1;
+      visionPrompts.push(body.messages[1].content[0].text);
+      if (malformedNextVision) {
+        malformedNextVision = false;
+        jsonResponse(response, {
+          choices: [{ message: { content: JSON.stringify({
+            hardGates: {
+              sourceFaithfulness: "pass",
+              comicPageForm: "pass",
+              requiredText: "pass",
+              safety: "pass",
+            },
+            content: subjectiveEval.content,
+            pages: subjectiveEval.pages.map(({ pageId, checks, evidence }) => ({ pageId, checks, evidence })),
+            pairwise: [],
+            series: subjectiveEval.series,
+            issues: [],
+          }) } }],
+        });
+        return;
+      }
       jsonResponse(response, { choices: [{ message: { content: JSON.stringify(subjectiveEval) } }] });
     } else {
       counts.planner += 1;
@@ -395,7 +417,9 @@ try {
     "--max-concurrency", "2",
   ], env);
   assert.equal(completed.status, 0, completed.stdout || completed.stderr);
-  assert.deepEqual(counts, { planner: 2, vision: 1, generations: 0, edits: 2 });
+  assert.deepEqual(counts, { planner: 2, vision: 2, generations: 0, edits: 2 });
+  assert.match(visionPrompts[0], /OUTPUT TEMPLATE/);
+  assert.match(visionPrompts[1], /CONTRACT REPAIR/);
   const result = JSON.parse(await readFile(path.join(fullRun, "result.json"), "utf8"));
   assert.equal(result.status, "reviewed");
   assert.equal(result.error, null, "reviewed runs must never retain a stale initialization error");
@@ -412,10 +436,10 @@ try {
   assert.doesNotMatch(`${promptOne}\n${promptTwo}`, /\b\d{2,5}\s*[x×]\s*\d{2,5}\b/);
   const usage = JSON.parse(await readFile(path.join(fullRun, "usage.json"), "utf8"));
   assert.equal(usage.status, "unavailable");
-  assert.equal(usage.calls.length, 4);
-  assert.equal(new Set(usage.calls.map((call) => call.callId)).size, 4);
-  assert.deepEqual(usage.calls.map((call) => call.role), ["planner", "image", "image", "evaluator"]);
-  assert.deepEqual(usage.calls.map((call) => call.operation), ["chat", "edit", "edit", "vision-chat"]);
+  assert.equal(usage.calls.length, 5);
+  assert.equal(new Set(usage.calls.map((call) => call.callId)).size, 5);
+  assert.deepEqual(usage.calls.map((call) => call.role), ["planner", "image", "image", "evaluator", "evaluator"]);
+  assert.deepEqual(usage.calls.map((call) => call.operation), ["chat", "edit", "edit", "vision-chat", "vision-chat"]);
   assert.ok(usage.calls.every((call) => call.status === "succeeded" && call.meteringStatus === "unavailable"));
   const debug = JSON.parse(await readFile(path.join(fullRun, "debug.json"), "utf8"));
   assert.deepEqual(debug.imageRoutePreflight.requiredOperations, ["edit"]);
@@ -442,7 +466,7 @@ try {
     "--authorize-model-calls",
   ], env);
   assert.notEqual(wrongSize.status, 0, "wrong direct dimensions must stop the run");
-  assert.deepEqual(counts, { planner: 3, vision: 1, generations: 0, edits: 3 });
+  assert.deepEqual(counts, { planner: 3, vision: 2, generations: 0, edits: 3 });
   const wrongResult = JSON.parse(await readFile(path.join(wrongSizeRun, "result.json"), "utf8"));
   assert.equal(wrongResult.status, "failed");
   assert.equal(wrongResult.stage, "generate");
@@ -470,6 +494,7 @@ try {
       "direct-3:4-pages-record-actual-dimensions-without-invented-pixels",
       "dimension-and-operation-preflight-runs-before-provider-calls",
       "product-final-quality-maps-to-provider-high",
+      "incomplete-evaluator-contract-is-repaired-on-the-same-images-without-image-regeneration",
       "multimodal-eval-and-diagnosis-produce-reviewed-result",
       "provider-without-metering-remains-usage-unavailable",
       "wrong-direct-size-stops-before-later-pages-and-vision-eval",

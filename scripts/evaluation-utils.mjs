@@ -32,6 +32,44 @@ const SERIES_KEYS = [
   "textConsistency",
 ];
 
+function expectedPairPageIds({ plan, input, visualLock, characterBible }) {
+  const externalAnchor = input.mode === "series-continuation" && Boolean(
+    selectContinuityAnchorAsset({ input, visualLock, characterBible }),
+  );
+  return externalAnchor
+    ? plan.pages.map((page) => page.id)
+    : plan.pages.slice(1).map((page) => page.id);
+}
+
+export function buildEvaluatorResponseTemplate({ plan, input, visualLock, characterBible }) {
+  const gate = () => ({ status: null, evidence: null });
+  const scores = (keys) => Object.fromEntries(keys.map((key) => [key, null]));
+  return {
+    hardGates: {
+      sourceFaithfulness: gate(),
+      comicPageForm: gate(),
+      requiredText: gate(),
+      safety: gate(),
+    },
+    content: scores(CONTENT_KEYS),
+    pages: plan.pages.map((page) => ({
+      pageId: page.id,
+      checks: scores(PAGE_KEYS),
+      textAudit: { observed: null, errors: null, observations: null },
+      evidence: null,
+    })),
+    pairwise: expectedPairPageIds({ plan, input, visualLock, characterBible }).map((pageId) => ({
+      pageId,
+      checks: scores(PAIRWISE_KEYS),
+      evidence: null,
+    })),
+    series: scores(SERIES_KEYS),
+    issues: null,
+    editorialRisks: null,
+    humanReviewRequired: null,
+  };
+}
+
 function isScore(value) {
   return Number.isInteger(value) && value >= SCORE_MIN && value <= SCORE_MAX;
 }
@@ -72,16 +110,13 @@ export function validateSubjectiveEvaluation(value, { plan, input, visualLock, c
     }
     if (!Array.isArray(page.evidence)) errors.push(`pages[${index}].evidence must be an array`);
   }
-  const externalAnchor = input.mode === "series-continuation" && Boolean(
-    selectContinuityAnchorAsset({ input, visualLock, characterBible }),
-  );
-  const expectedPairs = externalAnchor ? plan.pages.length : Math.max(0, plan.pages.length - 1);
+  const expectedPairIds = expectedPairPageIds({ plan, input, visualLock, characterBible });
+  const expectedPairs = expectedPairIds.length;
   if (!Array.isArray(value.pairwise) || value.pairwise.length !== expectedPairs) {
     errors.push(`pairwise must contain exactly ${expectedPairs} comparisons`);
   }
   for (const [index, pair] of (value.pairwise || []).entries()) {
-    const expectedPage = externalAnchor ? plan.pages[index] : plan.pages[index + 1];
-    if (pair.pageId !== expectedPage?.id) errors.push(`pairwise[${index}].pageId must match the expected page`);
+    if (pair.pageId !== expectedPairIds[index]) errors.push(`pairwise[${index}].pageId must match the expected page`);
     requireScores(pair.checks, PAIRWISE_KEYS, `pairwise[${index}].checks`, errors);
     if (!Array.isArray(pair.evidence)) errors.push(`pairwise[${index}].evidence must be an array`);
   }
@@ -220,6 +255,7 @@ export function buildDiagnosis({ evalReport, plan }) {
 }
 
 export function buildEvaluatorPrompt({ input, story, characterBible, plan, visualLock, copywriting }) {
+  const outputTemplate = buildEvaluatorResponseTemplate({ plan, input, visualLock, characterBible });
   return `You are the independent multimodal evaluator for a finished social-comic run.\n\n` +
     `Evaluate only the supplied final page images and any supplied external series anchor. Return one strict JSON object, no markdown. ` +
     `Do not claim that files, dimensions, hashes, provider provenance, or compositor provenance pass; local code controls those gates. ` +
@@ -235,6 +271,26 @@ export function buildEvaluatorPrompt({ input, story, characterBible, plan, visua
     `content with angleQuality, storyStructure, dialogueNaturalness, characterReproducibility, publishingAlignment; ` +
     `pages in plan order with pageId, checks.panelPlanFidelity/textLegibility/storyBeatFidelity/visualIntegrity, textAudit.observed/errors/observations, evidence array; ` +
     `pairwise comparisons required by the plan, with pageId, checks.characterIdentity/wardrobeAndProps/artStyle/pageGrammar, evidence array; ` +
-    `series with narrativeContinuity, characterConsistency, styleConsistency, layoutConsistency, textConsistency; issues array, editorialRisks array, humanReviewRequired boolean.`;
+    `series with narrativeContinuity, characterConsistency, styleConsistency, layoutConsistency, textConsistency; issues array, editorialRisks array, humanReviewRequired boolean.\n\n` +
+    `OUTPUT TEMPLATE\n${JSON.stringify(outputTemplate)}\n` +
+    `Replace every null with a judgment grounded in the supplied images and contract. Do not omit, rename, merge, or reorder entries. ` +
+    `Status must be pass or fail, scores must be integers 0-4, and every field marked null as an array must become an array.`;
+}
+
+export function buildEvaluatorRepairPrompt({
+  input,
+  story,
+  characterBible,
+  plan,
+  visualLock,
+  copywriting,
+  invalidEvaluation,
+  validationErrors,
+}) {
+  return `${buildEvaluatorPrompt({ input, story, characterBible, plan, visualLock, copywriting })}\n\n` +
+    `CONTRACT REPAIR\nThe previous evaluator response was valid JSON but incomplete. Re-inspect the same supplied images and return one complete replacement evaluation. ` +
+    `This is not permission to change an inconvenient visual judgment, and it is not permission to regenerate images.\n` +
+    `Validation errors: ${JSON.stringify(validationErrors)}\n` +
+    `Previous incomplete response: ${JSON.stringify(invalidEvaluation)}`;
 }
 import { selectContinuityAnchorAsset } from "./reference-assets.mjs";

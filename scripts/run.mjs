@@ -10,6 +10,7 @@ import {
   buildDiagnosis,
   buildEvalReport,
   buildEvaluatorPrompt,
+  buildEvaluatorRepairPrompt,
   validateSubjectiveEvaluation,
 } from "./evaluation-utils.mjs";
 import { postLayoutSourceFile } from "./post-layout.mjs";
@@ -248,7 +249,8 @@ async function runEvaluate(input) {
     : externalFiles.length > 0
       ? `The first ${externalFiles.length} supplied images are supporting references in this order: ${orderedExternalAssets.map((asset, index) => `image ${index + 1}=${asset.file} [${asset.roles.join(",")}]`).join("; ")}. They are not a canonical continuity anchor. The remaining images are new pages in this order: ${plan.pages.map((page) => page.id).join(", ")}. Page 1 is the internal anchor.`
       : `The supplied images are new pages in this order: ${plan.pages.map((page) => page.id).join(", ")}. Page 1 is the internal anchor.`;
-  const evaluatorPrompt = `${imageOrder}\n\n${buildEvaluatorPrompt({ input, story, characterBible, plan, visualLock, copywriting })}`;
+  const evaluationContext = { input, story, characterBible, plan, visualLock, copywriting };
+  const evaluatorPrompt = `${imageOrder}\n\n${buildEvaluatorPrompt(evaluationContext)}`;
   const evaluatorInputHash = stableHash({
     prompt: evaluatorPrompt,
     images: await hashRunFiles(imageFiles),
@@ -274,9 +276,43 @@ async function runEvaluate(input) {
     await recordUsage(failedModelCall(intent, error));
     throw error;
   }
-  const subjectiveErrors = validateSubjectiveEvaluation(response.data, { plan, input, visualLock, characterBible });
+  let subjectiveErrors = validateSubjectiveEvaluation(response.data, { plan, input, visualLock, characterBible });
   if (subjectiveErrors.length > 0) {
-    throw new Error(`Evaluator output failed its contract:\n${subjectiveErrors.join("\n")}`);
+    await addDebugEvent("evaluate-contract-repair", "running", { validationErrors: subjectiveErrors });
+    const repairPrompt = `${imageOrder}\n\n${buildEvaluatorRepairPrompt({
+      ...evaluationContext,
+      invalidEvaluation: response.data,
+      validationErrors: subjectiveErrors,
+    })}`;
+    const repairInputHash = stableHash({
+      prompt: repairPrompt,
+      images: await hashRunFiles(imageFiles),
+    });
+    const repairIntent = modelCallIntent({
+      callId: callIdFor(`evaluate-contract-repair:${repairInputHash}`),
+      role: "evaluator",
+      stage: "evaluate-contract-repair",
+      operation: "vision-chat",
+      inputHash: repairInputHash,
+    });
+    await recordUsage(repairIntent);
+    try {
+      response = await runJsonChat({
+        route,
+        prompt: repairPrompt,
+        imageFiles,
+        timeoutMs: args.timeoutMs,
+      });
+      await recordUsage(completedModelCall(repairIntent, response, stableHash(response.data)));
+    } catch (error) {
+      await recordUsage(failedModelCall(repairIntent, error));
+      throw error;
+    }
+    subjectiveErrors = validateSubjectiveEvaluation(response.data, { plan, input, visualLock, characterBible });
+    if (subjectiveErrors.length > 0) {
+      throw new Error(`Evaluator output failed its contract after one image-free repair attempt:\n${subjectiveErrors.join("\n")}`);
+    }
+    await addDebugEvent("evaluate-contract-repair", "completed");
   }
   const pageMetadata = await Promise.all(pageFiles.map(pngMetadata));
   const actualDimensions = pageMetadata.map((metadata, index) => ({

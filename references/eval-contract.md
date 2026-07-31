@@ -19,6 +19,7 @@ Use a fixed rubric to decide whether generated pages satisfy the run contract. K
 - Use deterministic checks for facts a script can prove; use image vision only for visual judgments.
 - Preserve failed evidence. Never alter thresholds after seeing results.
 - A passing eval does not prove that the contract itself matches user intent; diagnosis checks that boundary separately.
+- Give the evaluator the complete output shape with exact page and comparison IDs. If its first JSON response is structurally incomplete, allow one final contract-repair call over the same images. The repair may fill missing evaluator-owned judgments but must not regenerate images, change thresholds, replace an inconvenient verdict, or invent locally owned provenance. Record both evaluator calls in `usage.json`; fail closed if the repaired response is still incomplete.
 
 ## Score scale
 
