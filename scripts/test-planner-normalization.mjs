@@ -211,6 +211,10 @@ delete topicStoryWithoutSourceFaithfulness.sourceFaithfulness;
 const topicPackage = {
   topicAngles: malformedDeterministicFields.topicAngles,
   story: topicStoryWithoutSourceFaithfulness,
+  copywriting: {
+    version: 2,
+    platform: "错误平台",
+  },
   visualLock: malformedDeterministicFields.visualLock,
 };
 const normalizedTopic = normalizePlannerPackage(topicPackage, topicInput, styleCatalog);
@@ -224,6 +228,12 @@ assert.deepEqual(
   topicPackage.topicAngles,
   "topic-led semantic angles must not be overwritten",
 );
+assert.equal(normalizedTopic.copywriting.version, 3);
+assert.equal(normalizedTopic.copywriting.platform, "小红书");
+assert.equal(
+  normalizedTopic.copywriting.cta,
+  "如果这篇条漫对你有启发，欢迎收藏，并在评论区聊聊你的看法。",
+);
 assert.ok(
   !validatePlannerPackage(normalizedTopic, topicInput, styleCatalog).includes(
     "story.sourceFaithfulness must be a non-empty string",
@@ -235,6 +245,10 @@ const topicPrompt = buildPlannerPrompt(topicInput, styleCatalog);
 assert.match(
   topicPrompt,
   /"storySourceFaithfulness": "围绕用户提供的主题与核心观点「爱自己才是最好的风水」进行原创展开，不改变其表达方向。"/,
+);
+assert.match(
+  topicPrompt,
+  /"copywritingCtaFallback": "如果这篇条漫对你有启发，欢迎收藏，并在评论区聊聊你的看法。"/,
 );
 
 const customInput = structuredClone(storyInput);
@@ -261,6 +275,8 @@ console.log(JSON.stringify({
     "supplied-story topicAngles",
     "story sourceMode",
     "topic-led story source faithfulness",
+    "artifact versions",
+    "copywriting platform and missing CTA fallback",
     "character seriesMode",
     "numeric age serialization",
     "character list-shaped fields",

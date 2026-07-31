@@ -36,6 +36,23 @@ function generatedStorySourceFaithfulness(input) {
   return `Expand the user-supplied topic "${topic}" and core message "${coreMessage}" without changing their direction.`;
 }
 
+function generatedCopywritingCta(input) {
+  const language = String(input?.language || "").toLowerCase();
+  const goal = nonEmptyString(input?.ctaGoal) ? input.ctaGoal.trim() : "";
+  if (language.startsWith("zh")) {
+    if (goal.includes("收藏") && (goal.includes("讨论") || goal.includes("评论"))) {
+      return "如果这篇条漫对你有启发，欢迎收藏，并在评论区聊聊你的看法。";
+    }
+    if (goal.includes("收藏") && goal.includes("转发")) {
+      return "如果这篇条漫对你有启发，欢迎收藏并转发给需要的人。";
+    }
+    if (goal.includes("收藏")) return "如果这篇条漫对你有启发，欢迎先收藏起来。";
+    if (goal.includes("评论") || goal.includes("讨论")) return "你对此有什么感受？欢迎在评论区聊聊。";
+    return goal ? `如果这篇条漫对你有启发，欢迎参与：${goal}。` : "如果这篇条漫对你有启发，欢迎分享你的看法。";
+  }
+  return goal ? `If this comic resonates with you, please ${goal}.` : "If this comic resonates with you, share your perspective.";
+}
+
 function resolvePreset(input, styleCatalog) {
   if (input?.visual?.styleMode !== "preset") return null;
   return (styleCatalog?.presets ?? []).find((entry) => entry.id === input?.visual?.preset) ?? null;
@@ -72,6 +89,48 @@ function normalizePageFiles(comicPlan) {
   });
 }
 
+function normalizeInputDeterminedPlanFields(comicPlan, input) {
+  if (!comicPlan || typeof comicPlan !== "object" || Array.isArray(comicPlan)) return;
+  comicPlan.version = 3;
+  comicPlan.aspectRatio = input?.output?.aspectRatio;
+  comicPlan.quality = input?.output?.quality;
+  comicPlan.textStrategy = input?.output?.textStrategy;
+  if (input?.output?.exactSize) comicPlan.exactSize = structuredClone(input.output.exactSize);
+  else {
+    delete comicPlan.exactSize;
+    delete comicPlan.width;
+    delete comicPlan.height;
+  }
+  if (!Array.isArray(comicPlan.pages)) return;
+  comicPlan.pageCount = comicPlan.pages.length;
+  for (const page of comicPlan.pages) {
+    if (!page || typeof page !== "object" || Array.isArray(page) || !Array.isArray(page.panels)) continue;
+    page.panelCount = page.panels.length;
+  }
+}
+
+function normalizeInputDeterminedVisualFields(visualLock, characterBible, input) {
+  if (!visualLock || typeof visualLock !== "object" || Array.isArray(visualLock)) return;
+  visualLock.version = 3;
+  visualLock.sourceCharacterBible = "character-bible.json";
+  if (characterBible && typeof characterBible === "object" && !Array.isArray(characterBible) &&
+      Array.isArray(characterBible.characters)) {
+    visualLock.characters = characterBible.characters
+      .filter((character) => character && typeof character === "object" && !Array.isArray(character))
+      .map((character) => ({
+        id: character.id,
+        immutable: structuredClone(character.immutable),
+      }));
+  }
+  if (!visualLock.output || typeof visualLock.output !== "object" || Array.isArray(visualLock.output)) {
+    visualLock.output = {};
+  }
+  visualLock.output.aspectRatio = input?.output?.aspectRatio;
+  visualLock.output.textStrategy = input?.output?.textStrategy;
+  if (input?.output?.exactSize) visualLock.output.exactSize = structuredClone(input.output.exactSize);
+  else delete visualLock.output.exactSize;
+}
+
 function plannerContractFacts(input, styleCatalog) {
   const suppliedStory = usesSuppliedStory(input);
   const preset = resolvePreset(input, styleCatalog);
@@ -96,6 +155,8 @@ function plannerContractFacts(input, styleCatalog) {
     storySourceMode: suppliedStory ? "user-supplied" : "generated",
     storySourceFaithfulness: suppliedStory ? "planner-authored explanation of preserved story edits" :
       generatedStorySourceFaithfulness(input),
+    copywritingPlatform: input?.platform,
+    copywritingCtaFallback: generatedCopywritingCta(input),
     seriesMode: input?.mode === "series-continuation" || input?.series?.enabled === true,
     presetStyle: preset ? { presetId: preset.id, ...structuredClone(preset.lock) } : null,
   };
@@ -109,6 +170,11 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
   if (pkg === null || typeof pkg !== "object" || Array.isArray(pkg)) return pkg;
   const normalized = structuredClone(pkg);
   const suppliedStory = usesSuppliedStory(input);
+  for (const key of ["topicAngles", "story", "characterBible", "comicPlan", "visualLock", "copywriting"]) {
+    if (normalized[key] && typeof normalized[key] === "object" && !Array.isArray(normalized[key])) {
+      normalized[key].version = 3;
+    }
+  }
 
   if (suppliedStory && normalized.topicAngles && typeof normalized.topicAngles === "object" &&
       !Array.isArray(normalized.topicAngles)) {
@@ -155,7 +221,17 @@ export function normalizePlannerPackage(pkg, input, styleCatalog) {
   }
 
   normalizeCompositionFreedom(normalized.comicPlan);
+  normalizeInputDeterminedPlanFields(normalized.comicPlan, input);
   normalizePageFiles(normalized.comicPlan);
+  normalizeInputDeterminedVisualFields(normalized.visualLock, normalized.characterBible, input);
+
+  if (normalized.copywriting && typeof normalized.copywriting === "object" &&
+      !Array.isArray(normalized.copywriting)) {
+    normalized.copywriting.platform = input?.platform;
+    if (!nonEmptyString(normalized.copywriting.cta)) {
+      normalized.copywriting.cta = generatedCopywritingCta(input);
+    }
+  }
 
   return normalized;
 }
@@ -183,7 +259,7 @@ export function buildPlannerPrompt(input, styleCatalog) {
     `- claims must be an array, including [] when the story makes no claims needing review.\n` +
     `- CharacterBible requires seriesMode, at least one reproducible character, relationships, and seriesAssets. characterBible.seriesMode must equal INPUT-DETERMINED CONTRACT FACTS.seriesMode exactly.\n` +
     `- Each character requires id, role, personality, immutable.age/face/hair/body/outfit/signatureColors/recurringProps, expressionRange, signatureActions, forbiddenChanges, referenceImages. expressionRange, signatureActions, forbiddenChanges, and referenceImages must be JSON arrays, never prose strings. Every immutable field must be a non-empty string or a non-empty array of strings. Write age as a descriptive string such as "30岁" or "成年", never as a JSON number.\n` +
-    `- Copywriting requires platform, exactly 5 titleCandidates, summary, exactly 3 pullQuotes, exactly 10 tags, exactly 3 seriesNames, cta.\n\n` +
+    `- Copywriting requires platform, exactly 5 titleCandidates, summary, exactly 3 pullQuotes, exactly 10 tags, exactly 3 seriesNames, cta. Platform comes from input. Write a natural CTA aligned with ctaGoal; if omitted, the runtime supplies INPUT-DETERMINED CONTRACT FACTS.copywritingCtaFallback.\n\n` +
     `COMIC PLAN RULES\n` +
     `- Derive page and panel counts from the content when countMode is auto. Do not default to a fixed number. Honor totalPanelCount exactly when user-fixed.\n` +
     `- Each page is one directly generated standalone 3:4 final comic image containing its own panels, borders, bubbles/captions, actions, and readable flow. Never plan naked illustrations or later cropping/stitching.\n` +

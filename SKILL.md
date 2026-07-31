@@ -109,6 +109,7 @@ Write `story.json` with title, logline, summary, hook, escalation, turn, resolut
 Require conflict, progression, and a memorable ending, but vary the structure. Do not force every topic into identical “conflict → lecture → slogan” beats. Prefer concrete human action and natural dialogue over explanatory monologues.
 
 For topic-led generation, treat `sourceFaithfulness` as deterministic input provenance compiled from the validated topic and core message. For a user-supplied story, keep it planner-authored so it truthfully explains any clarity or pacing edits. Never use deterministic provenance to bypass semantic validation of the story, emotional curve, or传播 angles.
+Runtime-owned planning structure is canonicalized before validation: artifact versions, output settings, derived page/panel counts, canonical paths, visual output locks, platform, and a missing CTA fallback. Do not weaken semantic validators or invent missing story decisions.
 
 ### 4. Build the character and series bible
 

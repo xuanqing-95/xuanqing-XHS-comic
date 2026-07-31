@@ -1,6 +1,6 @@
 # Notice
 
-Social Comic Generator version 0.3.8
+Social Comic Generator version 0.3.9
 
 Unless a file states otherwise, the code, workflow instructions, prompt contracts, documentation, and project-produced preview assets in this repository are offered under **AGPL-3.0-only**. See `LICENSE`.
 
