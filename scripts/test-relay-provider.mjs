@@ -28,6 +28,9 @@ png.writeUInt32BE(1, 16);
 png.writeUInt32BE(1, 20);
 
 const calls = [];
+let rateLimitedCalls = 0;
+let exhaustedRateLimitedCalls = 0;
+let nonRetryableCalls = 0;
 const server = createServer(async (request, response) => {
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
@@ -38,13 +41,36 @@ const server = createServer(async (request, response) => {
     contentType: request.headers["content-type"],
     body: Buffer.concat(chunks),
   });
-  response.writeHead(200, { "content-type": "application/json" });
   if (request.url?.endsWith("/chat/completions")) {
+    const payload = JSON.parse(calls.at(-1).body.toString("utf8"));
+    const prompt = payload.messages?.[1]?.content;
+    if (prompt === "Retry JSON.") {
+      rateLimitedCalls += 1;
+      if (rateLimitedCalls < 3) {
+        response.writeHead(429, { "content-type": "application/json", "retry-after": "0" });
+        response.end(JSON.stringify({ error: "rate limited" }));
+        return;
+      }
+    }
+    if (prompt === "Do not retry.") {
+      nonRetryableCalls += 1;
+      response.writeHead(400, { "content-type": "application/json" });
+      response.end(JSON.stringify({ error: "bad request" }));
+      return;
+    }
+    if (prompt === "Exhaust retries.") {
+      exhaustedRateLimitedCalls += 1;
+      response.writeHead(429, { "content-type": "application/json", "retry-after": "0" });
+      response.end(JSON.stringify({ error: "rate limited" }));
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({
       choices: [{ message: { content: JSON.stringify({ verdict: "pass" }) } }],
       usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
     }));
   } else {
+    response.writeHead(200, { "content-type": "application/json" });
     response.end(JSON.stringify({
       data: [{ b64_json: png.toString("base64") }],
       usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 },
@@ -127,6 +153,24 @@ try {
   assert.match(calls[3].contentType || "", /^application\/json/);
   assert.match(calls[3].body.toString("utf8"), /data:image\/webp;base64,/);
   assert.deepEqual(await readFile(referencePath), largePng);
+
+  const retried = await runJsonChat({ route: vision, prompt: "Retry JSON." });
+  assert.equal(retried.attempts, 3);
+  assert.equal(rateLimitedCalls, 3);
+  await assert.rejects(
+    runJsonChat({ route: vision, prompt: "Do not retry." }),
+    /Chat API returned HTTP 400$/,
+  );
+  assert.equal(nonRetryableCalls, 1);
+  await assert.rejects(
+    runJsonChat({ route: vision, prompt: "Exhaust retries." }),
+    (error) => {
+      assert.match(error.message, /Chat API returned HTTP 429 after 4 attempts$/);
+      assert.equal(error.attempts, 4);
+      return true;
+    },
+  );
+  assert.equal(exhaustedRateLimitedCalls, 4);
 } finally {
   await new Promise((resolve) => server.close(resolve));
   await rm(temporary, { recursive: true, force: true });

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "id": "social-comic-generator",
-  "version": "0.3.16",
+  "version": "0.3.17",
   "artifactVersion": 3,
   "source": {
     "policy": "github-release-pinned",
     "repository": "https://github.com/xuanqing-95/xuanqing-XHS-comic",
     "canonicalPath": ".",
-    "releaseTag": "v0.3.16",
+    "releaseTag": "v0.3.17",
     "hashPolicy": "sha256-relative-path-size-content-v1"
   },
   "license": "AGPL-3.0-only",

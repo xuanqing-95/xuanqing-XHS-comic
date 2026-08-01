@@ -163,6 +163,7 @@ function failedModelCall(intent, error) {
     ...intent,
     status: "failed",
     meteringStatus: "unavailable",
+    attempts: Number.isSafeInteger(error?.attempts) ? error.attempts : undefined,
     completedAt: now(),
     error: serializeError(error),
   };

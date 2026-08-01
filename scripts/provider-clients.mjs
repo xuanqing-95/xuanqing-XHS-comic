@@ -11,6 +11,9 @@ const IMAGE_OPERATIONS = new Set(["generation", "edit"]);
 const EVIDENCE_LEVELS = new Set(["configured", "documented", "runtime-verified"]);
 const DEFAULT_CHAT_TIMEOUT_MS = 120_000;
 const DEFAULT_IMAGE_TIMEOUT_MS = 300_000;
+const MAX_CHAT_RATE_LIMIT_ATTEMPTS = 4;
+const CHAT_RATE_LIMIT_BACKOFF_MS = [2_000, 5_000, 10_000];
+const MAX_CHAT_RETRY_AFTER_MS = 30_000;
 const REDFLOW_RELAY_HEADER = "X-Redflow-Relay-Token";
 const REDFLOW_RELAY_PATH = "/api/internal/zenmux";
 const MAX_RELAY_JSON_BYTES = 4 * 1024 * 1024;
@@ -332,6 +335,34 @@ async function readJsonResponse(response, label) {
   }
 }
 
+function retryAfterMs(response, attempt) {
+  const value = response.headers.get("retry-after");
+  if (value !== null && value.trim() !== "") {
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      return Math.min(Math.ceil(seconds * 1_000), MAX_CHAT_RETRY_AFTER_MS);
+    }
+    const date = Date.parse(value);
+    if (Number.isFinite(date)) {
+      return Math.min(Math.max(0, date - Date.now()), MAX_CHAT_RETRY_AFTER_MS);
+    }
+  }
+  return CHAT_RATE_LIMIT_BACKOFF_MS[Math.min(attempt - 1, CHAT_RATE_LIMIT_BACKOFF_MS.length - 1)];
+}
+
+function wait(milliseconds) {
+  if (milliseconds <= 0) return Promise.resolve();
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function chatHttpError(status, attempts) {
+  const suffix = attempts > 1 ? ` after ${attempts} attempts` : "";
+  const error = new Error(`Chat API returned HTTP ${status}${suffix}`);
+  error.status = status;
+  error.attempts = attempts;
+  return error;
+}
+
 function routeResult(route) {
   return {
     provider: route.provider,
@@ -504,32 +535,46 @@ export async function runJsonChat({ route, prompt, imageFiles = [], timeoutMs } 
     ],
   };
 
-  const response = await fetchResponse(
-    `${normalizedRoute.baseURL}/chat/completions`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        ...relayHeaders(normalizedRoute),
-      },
-      body: usesRelay
-        ? encodeRelayJsonBody(body, "Chat request")
-        : JSON.stringify(body),
+  const request = {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+      ...relayHeaders(normalizedRoute),
     },
-    ensureTimeout(timeoutMs, DEFAULT_CHAT_TIMEOUT_MS),
-    "Chat API",
-  );
-  const requestId = responseRequestId(response);
-  const result = await readJsonResponse(response, "Chat API");
-  const data = parseStrictJsonObject(result?.choices?.[0]?.message?.content);
-  return {
-    data,
-    ...routeResult(normalizedRoute),
-    requestId,
-    usage: result?.usage ?? null,
-    attempts: 1,
+    body: usesRelay
+      ? encodeRelayJsonBody(body, "Chat request")
+      : JSON.stringify(body),
   };
+  const requestTimeoutMs = ensureTimeout(timeoutMs, DEFAULT_CHAT_TIMEOUT_MS);
+  for (let attempt = 1; attempt <= MAX_CHAT_RATE_LIMIT_ATTEMPTS; attempt += 1) {
+    const response = await fetchResponse(
+      `${normalizedRoute.baseURL}/chat/completions`,
+      request,
+      requestTimeoutMs,
+      "Chat API",
+    );
+    const requestId = responseRequestId(response);
+    if (response.status === 429) {
+      await response.arrayBuffer().catch(() => {});
+      if (attempt < MAX_CHAT_RATE_LIMIT_ATTEMPTS) {
+        await wait(retryAfterMs(response, attempt));
+        continue;
+      }
+      throw chatHttpError(response.status, attempt);
+    }
+    if (!response.ok) throw chatHttpError(response.status, attempt);
+    const result = await readJsonResponse(response, "Chat API");
+    const data = parseStrictJsonObject(result?.choices?.[0]?.message?.content);
+    return {
+      data,
+      ...routeResult(normalizedRoute),
+      requestId,
+      usage: result?.usage ?? null,
+      attempts: attempt,
+    };
+  }
+  throw new Error("Chat API rate-limit retry loop exited unexpectedly");
 }
 
 /** Generate one complete comic page through an OpenAI-compatible image route. */
