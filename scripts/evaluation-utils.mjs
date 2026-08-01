@@ -90,6 +90,10 @@ function requireScores(object, keys, field, errors) {
   }
 }
 
+function pickScores(object, keys) {
+  return Object.fromEntries(keys.map((key) => [key, object[key]]));
+}
+
 function normalizeStringArray(value) {
   if (Array.isArray(value)) return value.filter((item) => typeof item === "string" && item.trim() !== "");
   if (typeof value === "string" && value.trim() !== "") return [value.trim()];
@@ -169,10 +173,10 @@ export function validateSubjectiveEvaluation(value, { plan, input, visualLock, c
 
 function collectScores(subjective) {
   return [
-    ...Object.values(subjective.content),
-    ...subjective.pages.flatMap((page) => Object.values(page.checks)),
-    ...subjective.pairwise.flatMap((pair) => Object.values(pair.checks)),
-    ...Object.values(subjective.series),
+    ...CONTENT_KEYS.map((key) => subjective.content[key]),
+    ...subjective.pages.flatMap((page) => PAGE_KEYS.map((key) => page.checks[key])),
+    ...subjective.pairwise.flatMap((pair) => PAIRWISE_KEYS.map((key) => pair.checks[key])),
+    ...SERIES_KEYS.map((key) => subjective.series[key]),
   ];
 }
 
@@ -220,6 +224,7 @@ export function buildEvalReport({ subjective, plan, input, visualLock, character
   const status = gatesPass && scoresPass ? "pass" : "fail";
   const pages = subjective.pages.map((page, index) => ({
     ...page,
+    checks: pickScores(page.checks, PAGE_KEYS),
     textAudit: {
       expected: plan.pages[index].requiredText || plan.pages[index].allowedText || [],
       observed: page.textAudit.observed,
@@ -239,17 +244,17 @@ export function buildEvalReport({ subjective, plan, input, visualLock, character
       referencePageId: plan.pages[0].id,
     }),
     pageId: pair.pageId,
-    checks: pair.checks,
+    checks: pickScores(pair.checks, PAIRWISE_KEYS),
     evidence: pair.evidence,
   }));
   return {
     version: 3,
     evaluator,
     hardGates,
-    content: subjective.content,
+    content: pickScores(subjective.content, CONTENT_KEYS),
     pages,
     pairwise,
-    series: subjective.series,
+    series: pickScores(subjective.series, SERIES_KEYS),
     scoreMean,
     threshold: EVAL_THRESHOLD,
     status,
