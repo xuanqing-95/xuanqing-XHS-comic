@@ -247,6 +247,15 @@ function resolveRelayToken(route) {
 }
 
 function relayHeaders(route) {
+  const official = route.provider === "openai";
+  if (official) {
+    const base = String(route.baseURL || "").replace(/\/+$/, "");
+    if (base === "https://api.openai.com/v1") return {};
+    if (base !== "https://www.pipeline.xin/api/internal/openai" || route.relayTokenEnv !== "OPENAI_RELAY_TOKEN") {
+      throw new Error("Official OpenAI route requires its explicit trusted endpoint and relay credential");
+    }
+    return { "X-Redflow-OpenAI-Relay-Token": resolveRelayToken(route) };
+  }
   const token = resolveRelayToken(route);
   return token ? { [REDFLOW_RELAY_HEADER]: token } : {};
 }
@@ -255,7 +264,7 @@ function isRedflowRelayRoute(route) {
   if (!route.relayTokenEnv) return false;
   try {
     const url = new URL(route.baseURL);
-    return url.pathname.replace(/\/+$/, "") === REDFLOW_RELAY_PATH;
+    return url.pathname.replace(/\/+$/, "") === REDFLOW_RELAY_PATH || (route.provider === "openai" && route.baseURL === "https://www.pipeline.xin/api/internal/openai" && route.relayTokenEnv === "OPENAI_RELAY_TOKEN");
   } catch {
     return false;
   }
@@ -315,7 +324,7 @@ async function fetchResponse(url, options, timeoutMs, label) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetch(url, { ...options, redirect: "error", signal: controller.signal });
   } catch (error) {
     if (error?.name === "AbortError") throw new Error(`${label} timed out after ${timeoutMs}ms`);
     throw new Error(`${label} failed: ${error?.message || String(error)}`);
@@ -535,6 +544,12 @@ export async function runJsonChat({ route, prompt, imageFiles = [], timeoutMs } 
     ],
   };
 
+  if (normalizedRoute.provider === "openai") {
+    body.max_completion_tokens = 8192;
+    body.reasoning_effort = "low";
+    body.store = false;
+    body.service_tier = "default";
+  }
   const request = {
     method: "POST",
     headers: {
@@ -547,7 +562,8 @@ export async function runJsonChat({ route, prompt, imageFiles = [], timeoutMs } 
       : JSON.stringify(body),
   };
   const requestTimeoutMs = ensureTimeout(timeoutMs, DEFAULT_CHAT_TIMEOUT_MS);
-  for (let attempt = 1; attempt <= MAX_CHAT_RATE_LIMIT_ATTEMPTS; attempt += 1) {
+  const maxAttempts = normalizedRoute.provider === "openai" ? 1 : MAX_CHAT_RATE_LIMIT_ATTEMPTS;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const response = await fetchResponse(
       `${normalizedRoute.baseURL}/chat/completions`,
       request,
@@ -557,7 +573,7 @@ export async function runJsonChat({ route, prompt, imageFiles = [], timeoutMs } 
     const requestId = responseRequestId(response);
     if (response.status === 429) {
       await response.arrayBuffer().catch(() => {});
-      if (attempt < MAX_CHAT_RATE_LIMIT_ATTEMPTS) {
+      if (attempt < maxAttempts) {
         await wait(retryAfterMs(response, attempt));
         continue;
       }
