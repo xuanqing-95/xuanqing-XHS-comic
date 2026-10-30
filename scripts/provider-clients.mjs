@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { relayHeaders, officialChatOptions } from "./official-provider-utils.mjs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -14,7 +15,6 @@ const DEFAULT_IMAGE_TIMEOUT_MS = 300_000;
 const MAX_CHAT_RATE_LIMIT_ATTEMPTS = 4;
 const CHAT_RATE_LIMIT_BACKOFF_MS = [2_000, 5_000, 10_000];
 const MAX_CHAT_RETRY_AFTER_MS = 30_000;
-const REDFLOW_RELAY_HEADER = "X-Redflow-Relay-Token";
 const REDFLOW_RELAY_PATH = "/api/internal/zenmux";
 const MAX_RELAY_JSON_BYTES = 4 * 1024 * 1024;
 const RELAY_IMAGE_MAX_WIDTH = 768;
@@ -235,29 +235,6 @@ function resolveApiKey(route) {
     if (typeof value === "string" && value.trim() !== "") return value.trim();
   }
   throw new Error(`Missing API key in environment variable(s): ${route.apiKeyEnv.join(", ")}`);
-}
-
-function resolveRelayToken(route) {
-  if (!route.relayTokenEnv) return "";
-  const token = process.env[route.relayTokenEnv];
-  if (typeof token !== "string" || token.trim() === "") {
-    throw new Error(`Missing relay token in environment variable: ${route.relayTokenEnv}`);
-  }
-  return token.trim();
-}
-
-function relayHeaders(route) {
-  const official = route.provider === "openai";
-  if (official) {
-    const base = String(route.baseURL || "").replace(/\/+$/, "");
-    if (base === "https://api.openai.com/v1") return {};
-    if (base !== "https://www.pipeline.xin/api/internal/openai" || route.relayTokenEnv !== "OPENAI_RELAY_TOKEN") {
-      throw new Error("Official OpenAI route requires its explicit trusted endpoint and relay credential");
-    }
-    return { "X-Redflow-OpenAI-Relay-Token": resolveRelayToken(route) };
-  }
-  const token = resolveRelayToken(route);
-  return token ? { [REDFLOW_RELAY_HEADER]: token } : {};
 }
 
 function isRedflowRelayRoute(route) {
@@ -544,12 +521,7 @@ export async function runJsonChat({ route, prompt, imageFiles = [], timeoutMs } 
     ],
   };
 
-  if (normalizedRoute.provider === "openai") {
-    body.max_completion_tokens = 8192;
-    body.reasoning_effort = "low";
-    body.store = false;
-    body.service_tier = "default";
-  }
+  Object.assign(body, officialChatOptions(normalizedRoute.provider));
   const request = {
     method: "POST",
     headers: {

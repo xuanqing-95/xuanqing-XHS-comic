@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import sharp from 'sharp';
 import { runJsonChat, generatePage } from './provider-clients.mjs';
+import { relayHeaders, officialChatOptions } from './official-provider-utils.mjs';
 const oldFetch=globalThis.fetch;
 const previous={key:process.env.OFFICIAL_TEST_KEY,token:process.env.OPENAI_RELAY_TOKEN};
 process.env.OFFICIAL_TEST_KEY='test-only-key';process.env.OPENAI_RELAY_TOKEN='test-only-relay';
@@ -19,6 +20,15 @@ globalThis.fetch=async(url,options)=>{
 };
 const common={provider:'openai',model:'gpt-6.1-terra',pricingModel:'openai:gpt-6.1-terra',adapter:'openai_compatible_chat',baseURL:'https://www.pipeline.xin/api/internal/openai',apiKeyEnv:['OFFICIAL_TEST_KEY'],relayTokenEnv:'OPENAI_RELAY_TOKEN'};
 try{
+ const legacyEnv={ZENMUX_RELAY_TOKEN:'legacy-only'};
+ assert.deepEqual(relayHeaders({provider:'zenmux',relayTokenEnv:'ZENMUX_RELAY_TOKEN'},legacyEnv),{'X-Redflow-Relay-Token':'legacy-only'});
+ assert.deepEqual(officialChatOptions('zenmux'),{});
+ assert.deepEqual(officialChatOptions('openai'),{max_completion_tokens:8192,reasoning_effort:'low',store:false,service_tier:'default'});
+ assert.throws(()=>relayHeaders(common,legacyEnv),/Missing relay token/);
+ assert.throws(()=>relayHeaders({...common,relayTokenEnv:'ZENMUX_RELAY_TOKEN'},legacyEnv),/trusted endpoint/);
+ for(const baseURL of ['http://www.pipeline.xin/api/internal/openai','https://www.pipeline.xin.evil.invalid/api/internal/openai','https://user:pass@www.pipeline.xin/api/internal/openai','https://www.pipeline.xin/api/internal/openai?target=evil','https://www.pipeline.xin/api/internal/zenmux','https://www.pipeline.xin:8443/api/internal/openai']) {
+  assert.throws(()=>relayHeaders({...common,baseURL},legacyEnv),/trusted endpoint/);
+ }
  const chat=await runJsonChat({route:{...common,capability:'vision'},prompt:'Return JSON',imageFiles:[file]});assert.equal(chat.data.ok,true);
  assert.equal(calls[0].options.headers['X-Redflow-OpenAI-Relay-Token'],'test-only-relay');assert.equal(calls[0].options.headers['X-Redflow-Relay-Token'],undefined);assert.equal(calls[0].options.redirect,'error');assert.equal(JSON.parse(calls[0].options.body).max_completion_tokens,8192);
  await assert.rejects(runJsonChat({route:{...common,capability:'text',baseURL:'https://untrusted.invalid/v1'},prompt:'JSON'}),/trusted endpoint/);assert.equal(calls.length,1);
