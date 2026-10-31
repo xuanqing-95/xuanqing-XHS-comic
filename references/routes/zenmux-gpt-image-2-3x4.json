@@ -44,6 +44,14 @@
       "baseURL": "https://api.openai.com/v1",
       "relayBaseURL": "https://www.pipeline.xin/api/internal/openai",
       "relayTokenEnv": "OPENAI_RELAY_TOKEN"
+    },
+    {
+      "provider": "openai",
+      "model": "gpt-image-2.5-flare",
+      "pricingModel": "openai:gpt-image-2.5-flare",
+      "baseURL": "https://api.openai.com/v1",
+      "relayBaseURL": "https://www.pipeline.xin/api/internal/openai",
+      "relayTokenEnv": "OPENAI_RELAY_TOKEN"
     }
   ]
 }
